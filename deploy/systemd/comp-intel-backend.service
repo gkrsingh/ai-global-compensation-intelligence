@@ -1,0 +1,35 @@
+[Unit]
+Description=AI Global Compensation Intelligence backend (FastAPI via Gunicorn/Uvicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=compintel
+Group=compintel
+WorkingDirectory=/opt/comp-intel/backend
+# compintel has no real home directory (--no-create-home) and ProtectHome
+# blocks /home entirely, so $HOME defaulting to /home/compintel makes any
+# home-relative path resolution fail. Point it somewhere real and writable
+# instead — silences gunicorn's "Control server error: Permission denied"
+# on every startup without weakening ProtectHome.
+Environment=HOME=/opt/comp-intel/backend
+EnvironmentFile=/opt/comp-intel/backend/.env
+ExecStart=/opt/comp-intel/backend/.venv/bin/gunicorn app.main:app \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8000 \
+    --access-logfile - \
+    --error-logfile -
+Restart=on-failure
+RestartSec=5
+
+# Hardening beyond just running as a non-root user.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/comp-intel/backend
+
+[Install]
+WantedBy=multi-user.target
