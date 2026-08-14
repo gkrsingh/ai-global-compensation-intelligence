@@ -1,0 +1,4 @@
+# Normalize line endings to LF regardless of the editing OS.
+# This repo is edited on Windows and run/tested inside WSL2 Ubuntu, so
+# consistent LF endings avoid noisy diffs and shell-script CRLF breakage.
+* text=auto eol=lf
