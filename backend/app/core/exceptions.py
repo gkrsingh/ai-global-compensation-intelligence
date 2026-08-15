@@ -1,6 +1,8 @@
 import logging
+from typing import cast
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -29,7 +31,18 @@ class AppError(Exception):
 
 
 def _error_envelope(code: str, message: str, details: object = None) -> dict[str, object]:
-    return {"error": {"code": code, "message": message, "details": details}}
+    """jsonable_encoder converts non-JSON-native types (Decimal, datetime,
+    ...) that can end up in `details` - e.g. Pydantic's own validation
+    error context includes the raw constraint value, so a failed
+    `Field(ge=Decimal("0"))` check puts a real Decimal in exc.errors().
+    Plain JSONResponse uses json.dumps directly and has no idea what to do
+    with that; discovered via a real Decimal-typed validation failure, not
+    a hypothetical one.
+    """
+    return cast(
+        "dict[str, object]",
+        jsonable_encoder({"error": {"code": code, "message": message, "details": details}}),
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -45,7 +58,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=_error_envelope("validation_error", "Request validation failed", exc.errors()),
         )
 
