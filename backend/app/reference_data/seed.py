@@ -16,7 +16,6 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -31,34 +30,7 @@ from app.reference_data.models import (
     TaxComponent,
     TaxRuleSet,
 )
-
-
-def _upsert(
-    session: Session,
-    model: type[Any],
-    natural_key: dict[str, Any],
-    values: dict[str, Any],
-) -> Any:
-    """Insert a row matching natural_key, or update it in place if present.
-
-    NULL-safe: a None in natural_key is matched with IS NULL, not `= NULL`
-    (which would never match anything in SQL).
-    """
-    stmt = select(model)
-    for field, value in natural_key.items():
-        column = getattr(model, field)
-        stmt = stmt.where(column.is_(None) if value is None else column == value)
-    existing = session.execute(stmt).scalar_one_or_none()
-
-    if existing is None:
-        obj = model(**natural_key, **values)
-        session.add(obj)
-        return obj
-
-    for field, value in values.items():
-        setattr(existing, field, value)
-    return existing
-
+from app.reference_data.upsert import upsert as _upsert
 
 _CURRENCIES: list[dict[str, Any]] = [
     {"code": "INR", "name": "Indian Rupee", "symbol": "₹", "decimal_places": 2},
