@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     # before our validator ever runs, and fails on a plain comma-separated string.
     backend_cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
 
+    # No default, same fail-fast-if-unconfigured treatment as database_url -
+    # this signs every access token issued, so an accidental hardcoded
+    # default would be a real vulnerability, not just a convenience.
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+
     @field_validator("backend_cors_origins", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:

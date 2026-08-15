@@ -18,6 +18,7 @@ jobs:
       LOG_LEVEL: WARNING
       BACKEND_CORS_ORIGINS: http://localhost:5173
       DATABASE_URL: postgresql+psycopg://compintel_ci:compintel_ci@localhost:5432/compintel_ci
+      JWT_SECRET_KEY: K-X9ar6mOLjIH1j2fLvQjyXZEWzZArQDTgXwvYFoINkbU7qoUsZgTQz-ahgt3NUD
     steps:
       - uses: actions/checkout@v4
 
