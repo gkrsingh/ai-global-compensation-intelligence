@@ -52,5 +52,13 @@ def test_list_tax_rule_sets_lowercases_country_code(client: TestClient) -> None:
 
 
 def test_list_tax_rule_sets_404s_for_unknown_country(client: TestClient) -> None:
+    """This endpoint predates the {"error": {...}} envelope (Phase 2, before
+    Phase 3 introduced AppError) and had drifted onto FastAPI's raw
+    {"detail": ...} shape - asserting the full envelope here, not just the
+    status code, so that drift can't silently reappear.
+    """
     response = client.get("/api/v1/countries/ZZ/tax-rule-sets")
     assert response.status_code == 404
+    body = response.json()
+    assert body["error"]["code"] == "unknown_country"
+    assert "ZZ" in body["error"]["message"]
