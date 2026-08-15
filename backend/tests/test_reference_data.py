@@ -1,11 +1,12 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.reference_data.models import Country, Currency, TaxComponent
-from app.reference_data.queries import get_effective_tax_rule_set
+from app.reference_data.queries import AmbiguousTaxRuleSetError, get_effective_tax_rule_set
 
 
 def test_currencies_and_countries_seeded(db_session: Session) -> None:
@@ -80,3 +81,16 @@ def test_returns_none_before_effective_date(db_session: Session) -> None:
         db_session, "US", date(2020, 1, 1), filing_status="single"
     )
     assert rule_set is None
+
+
+def test_raises_ambiguous_error_for_india_without_regime(db_session: Session) -> None:
+    """India has both an old- and a new-regime TaxRuleSet effective today,
+    so asking for "IN as of today" without a regime is genuinely
+    ambiguous, not a bug in the seed data. Found via real UI testing in
+    Phase 4 - the Calculator form doesn't collect regime, and this path
+    had never been exercised without one before.
+    """
+    with pytest.raises(AmbiguousTaxRuleSetError) as exc_info:
+        get_effective_tax_rule_set(db_session, "IN", date.today())
+
+    assert "IN" in str(exc_info.value)

@@ -153,6 +153,37 @@ def test_missing_exchange_rate_returns_422_not_500(client: TestClient, db_sessio
     assert leftover == []
 
 
+def test_ambiguous_tax_rule_set_returns_422_not_500(
+    client: TestClient, db_session: Session
+) -> None:
+    """India has both an old- and a new-regime TaxRuleSet effective today;
+    submitting without a regime must surface as a clean 422 with our error
+    envelope, not an unhandled 500 (sqlalchemy.exc.MultipleResultsFound
+    leaking out of get_effective_tax_rule_set - the real bug this guards,
+    caught via real browser testing in Phase 4, not invented for the test).
+    """
+    response = client.post(
+        "/api/v1/calculations",
+        json={
+            "country_code": "IN",
+            "target_currency_code": "INR",
+            "components": [
+                {"component_type": "base", "amount": "1500000.00", "currency_code": "INR"}
+            ],
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "ambiguous_tax_rule_set"
+
+    india = db_session.scalar(select(Country).where(Country.code == "IN"))
+    assert india is not None
+    leftover = db_session.scalars(
+        select(CompensationInput).where(CompensationInput.country_id == india.id)
+    ).all()
+    assert leftover == []
+
+
 def test_as_of_date_defaults_to_today_when_omitted(
     client: TestClient, db_session: Session
 ) -> None:

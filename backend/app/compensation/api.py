@@ -11,6 +11,7 @@ from app.compensation.services.currency import MissingExchangeRateError
 from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.reference_data.models import Country, Currency, EmploymentType, ExperienceLevel, JobFamily
+from app.reference_data.queries import AmbiguousTaxRuleSetError
 
 router = APIRouter()
 
@@ -78,6 +79,8 @@ def create_calculation(
             code="missing_exchange_rate",
             status_code=422,
         ) from exc
+    except AmbiguousTaxRuleSetError as exc:
+        raise AppError(str(exc), code="ambiguous_tax_rule_set", status_code=422) from exc
 
     db.commit()
     db.refresh(calculation)
