@@ -5,11 +5,19 @@ its natural business key (not blindly inserted), so this is safe to re-run
 after a data correction — never duplicates, updates in place if the seed
 data changed since the last run.
 
-Seeds currencies, countries, job families, experience levels, employment
-types, and a couple of illustrative exchange rates — reference data that
-needs no research/citation. TaxRuleSet/TaxBracket seeding (the real, cited
-India/US/Spain tax figures) is added on top of this same mechanism
-separately, since that data does need citation and is easy to get wrong.
+Seeds currencies, countries, job families, experience levels, and
+employment types — static reference data with no research/citation
+needed and no reason to change day to day. TaxRuleSet/TaxBracket seeding
+(the real, cited India/US/Spain tax figures) is added on top of this
+same mechanism separately, since that data does need citation and is
+easy to get wrong.
+
+Exchange rates are deliberately NOT seeded here (they were in Phase 2,
+as two hardcoded illustrative rows - see Phase 6 for why that changed).
+Unlike the entities above, a rate is inherently time-varying, sourced
+data, not a static fact about the world - it belongs to
+fetch_exchange_rates.py, which gets it from a real provider, not to a
+committed seed file pretending to know today's USD/INR rate in advance.
 """
 
 from datetime import date
@@ -23,7 +31,6 @@ from app.reference_data.models import (
     Country,
     Currency,
     EmploymentType,
-    ExchangeRate,
     ExperienceLevel,
     JobFamily,
     TaxBracket,
@@ -65,27 +72,6 @@ _EMPLOYMENT_TYPES: list[dict[str, str]] = [
     {"code": "CONTRACT", "name": "Contract"},
     {"code": "PART_TIME", "name": "Part-time"},
 ]
-
-# Illustrative only — proves the table shape works, not meant to be
-# currently accurate. Real rate-fetching is a later integration (see the
-# original architecture's External Integration Architecture section).
-_EXCHANGE_RATES: list[dict[str, Any]] = [
-    {
-        "base_code": "USD",
-        "quote_code": "INR",
-        "rate": Decimal("83.00000000"),
-        "as_of_date": date(2026, 1, 1),
-        "source": "manual-seed-illustrative",
-    },
-    {
-        "base_code": "USD",
-        "quote_code": "EUR",
-        "rate": Decimal("0.92000000"),
-        "as_of_date": date(2026, 1, 1),
-        "source": "manual-seed-illustrative",
-    },
-]
-
 
 # Real, cited tax figures. Every source_note explicitly flags known
 # simplifications rather than letting them look like oversights — see the
@@ -344,20 +330,6 @@ def seed_employment_types(session: Session) -> None:
     session.flush()
 
 
-def seed_exchange_rates(session: Session, currencies: dict[str, Currency]) -> None:
-    for data in _EXCHANGE_RATES:
-        base = currencies[data["base_code"]]
-        quote = currencies[data["quote_code"]]
-        natural_key = {
-            "base_currency_id": base.id,
-            "quote_currency_id": quote.id,
-            "as_of_date": data["as_of_date"],
-        }
-        values = {"rate": data["rate"], "source": data["source"]}
-        _upsert(session, ExchangeRate, natural_key, values)
-    session.flush()
-
-
 def seed_tax_rule_sets(
     session: Session, countries: dict[str, Country], currencies: dict[str, Currency]
 ) -> None:
@@ -398,7 +370,6 @@ def seed_all(session: Session) -> None:
     seed_job_families(session)
     seed_experience_levels(session)
     seed_employment_types(session)
-    seed_exchange_rates(session, currencies)
     seed_tax_rule_sets(session, countries, currencies)
     session.commit()
 

@@ -1,7 +1,8 @@
 """Integration tests for the orchestration engine - these deliberately hit
-the real, Phase-2-seeded database (real tax rule sets, real illustrative
-exchange rates), unlike the pure-service tests. This is the layer the
-hard constraint explicitly allows to touch the DB.
+the real, Phase-2-seeded database (real tax rule sets), unlike the
+pure-service tests. This is the layer the hard constraint explicitly
+allows to touch the DB. Exchange rates are no longer part of that seed
+(Phase 6) - the one test here that needs a rate fixtures its own row.
 """
 
 from datetime import date
@@ -19,7 +20,7 @@ from app.compensation.models import (
     ComponentType,
 )
 from app.compensation.services.currency import MissingExchangeRateError
-from app.reference_data.models import Country, Currency
+from app.reference_data.models import Country, Currency, ExchangeRate
 
 
 def _country(db_session: Session, code: str) -> Country:
@@ -220,20 +221,36 @@ def test_no_matching_tax_rule_set_leaves_tax_fields_null(db_session: Session) ->
     assert calculation.breakdown["tax"] is None
 
 
-def test_multi_currency_components_use_seeded_exchange_rate(db_session: Session) -> None:
+def test_multi_currency_components_use_a_fixtured_exchange_rate(db_session: Session) -> None:
     """USD base + an INR bonus, target USD: the INR component must be
-    converted using the seeded USD->INR rate (83.00000000).
+    converted using the fixtured USD->INR rate (83.00000000).
     500000 / 83 = 6024.096385... -> 6024.10.
+
+    Exchange rates aren't part of the global seed (Phase 6) - this test
+    inserts its own row, dated to match the CompensationInput's own
+    as_of_date, so get_closest_exchange_rate's nearest-date lookup
+    resolves it unambiguously.
     """
     us = _country(db_session, "US")
     usd = _currency(db_session, "USD")
     inr = _currency(db_session, "INR")
+    today = date.today()
+    db_session.add(
+        ExchangeRate(
+            base_currency_id=usd.id,
+            quote_currency_id=inr.id,
+            rate=Decimal("83.00000000"),
+            as_of_date=today,
+            source="test-fixture",
+        )
+    )
+    db_session.flush()
 
     comp_input = CompensationInput(
         country_id=us.id,
         target_currency_id=usd.id,
         filing_status="single",
-        as_of_date=date.today(),
+        as_of_date=today,
     )
     comp_input.components.append(_component(ComponentType.BASE, "100000.00", usd))
     comp_input.components.append(_component(ComponentType.BONUS, "500000.00", inr))
