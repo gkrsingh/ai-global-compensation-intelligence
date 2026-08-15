@@ -71,6 +71,24 @@ def test_register_rejects_a_duplicate_email(client: TestClient, db_session: Sess
     _delete_user_by_email(db_session, "dup-register-test@example.com")
 
 
+def test_register_rejects_a_duplicate_email_even_with_different_casing(
+    client: TestClient, db_session: Session
+) -> None:
+    """The two properties above (normalization happens; same-case
+    duplicates are rejected) don't individually prove this: that the
+    normalization actually runs BEFORE the uniqueness check, so a
+    case-variant of an existing email can't slip through as "different".
+    """
+    _register(client, "case-dup-test@example.com")
+
+    response = _register(client, "Case-Dup-Test@Example.com")
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "email_already_registered"
+
+    _delete_user_by_email(db_session, "case-dup-test@example.com")
+
+
 def test_register_rejects_a_too_short_password(client: TestClient) -> None:
     response = _register(client, "short-pw-test@example.com", password="short")
     assert response.status_code == 422
@@ -201,6 +219,33 @@ def test_logout_revokes_the_token(client: TestClient, db_session: Session) -> No
     assert token.revoked_at is not None
 
     _delete_user_by_email(db_session, "logout-test@example.com")
+
+
+def test_logout_only_revokes_the_presented_token_not_the_users_other_sessions(
+    client: TestClient, db_session: Session
+) -> None:
+    """A real multi-device/multi-tab property, not just an implementation
+    detail: logging out on one device must not silently kill a different
+    device's still-active session. Two logins issue two distinct refresh
+    tokens for the same user; only the one actually presented to /logout
+    should end up revoked.
+    """
+    _register(client, "multi-session-test@example.com")
+    session_a = _login(client, "multi-session-test@example.com").json()["refresh_token"]
+    session_b = _login(client, "multi-session-test@example.com").json()["refresh_token"]
+    assert session_a != session_b
+
+    client.post("/api/v1/auth/logout", json={"refresh_token": session_a})
+
+    refresh_a = client.post("/api/v1/auth/refresh", json={"refresh_token": session_a})
+    refresh_b = client.post("/api/v1/auth/refresh", json={"refresh_token": session_b})
+
+    assert refresh_a.status_code == 401
+    assert refresh_a.json()["error"]["code"] == "invalid_refresh_token"
+    assert refresh_b.status_code == 200
+    assert refresh_b.json()["access_token"]
+
+    _delete_user_by_email(db_session, "multi-session-test@example.com")
 
 
 def test_logout_is_idempotent_for_an_already_revoked_token(
