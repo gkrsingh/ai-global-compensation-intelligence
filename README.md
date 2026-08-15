@@ -6,12 +6,36 @@ types.
 
 ## Status
 
-Phase 1 (walking skeleton) complete: FastAPI backend with a liveness/readiness
-health check, React/Vite frontend showing live backend/database status,
-PostgreSQL wired locally, CI (lint, type-check, test, build, dependency audit)
-gating every PR, and deployment artifacts (systemd unit, Nginx config, CD
-workflow) written and validated locally. No compensation logic, auth, or AI
-yet, and nothing is deployed to a real server yet — see [Deployment](#deployment).
+Phases 1–4 complete.
+
+- **Phase 1 — walking skeleton.** FastAPI backend with a liveness/readiness
+  health check, React/Vite frontend, PostgreSQL wired locally, CI (lint,
+  type-check, test, build, dependency audit) gating every PR, and deployment
+  artifacts (systemd unit, Nginx config, CD workflow) written and validated
+  locally.
+- **Phase 2 — reference data.** Country/currency/exchange-rate/job-family/
+  experience-level/employment-type/tax-rule-set/tax-bracket models, an
+  idempotent seed mechanism, and real, cited income-tax data for India, the
+  US, and Spain, with every simplification explicitly flagged rather than
+  left implicit. Read-only endpoints: `GET /api/v1/countries`,
+  `GET /api/v1/countries/{code}/tax-rule-sets`.
+- **Phase 3 — deterministic calculation engine.** Pure, DB-free currency
+  conversion and progressive tax-bracket math (unit-tested against
+  hand-worked boundary cases), an orchestration layer that runs them against
+  real seeded data, and `POST /api/v1/calculations`. Hand-verified against
+  real salary figures in all three seeded countries — e.g. a $150,000 US
+  single-filer example checked bracket-by-bracket by hand.
+- **Phase 4 — usable frontend.** A real page where someone can enter a
+  compensation offer (one or more components — base, bonus, equity, benefit,
+  allowance — each with its own amount and currency), pick a country and,
+  where more than one applies, a tax regime, submit it, and see the
+  computed gross, total compensation, full tax breakdown, and net rendered
+  clearly. TypeScript types are generated from the backend's own OpenAPI
+  schema rather than hand-duplicated, so frontend and backend contracts
+  can't silently drift.
+
+No auth, saved history, offer comparison, or AI yet, and nothing is
+deployed to a real server yet — see [Deployment](#deployment).
 
 ## Repository structure
 
@@ -29,8 +53,8 @@ running locally.
 
 See [`backend/README.md`](backend/README.md) and
 [`frontend/README.md`](frontend/README.md) for setup and commands. Once both
-are running (backend on its dev port, frontend on `5173`), the frontend's
-health page shows live backend and database status.
+are running (backend on its dev port, frontend on `5173`), the page shows
+live backend/database status and the compensation calculator.
 
 ## Deployment
 
