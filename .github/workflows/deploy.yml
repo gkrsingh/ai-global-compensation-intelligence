@@ -1,0 +1,99 @@
+name: CD
+
+# Manual trigger only. No server exists yet (Phase 1B is local-validation
+# only — see deploy/systemd and deploy/nginx), and the secrets below aren't
+# configured, so this intentionally does not run on push. Once a real
+# Ubuntu server is provisioned:
+#   1. Create a `deploy` user on the server, separate from the `compintel`
+#      runtime user (which is --shell /usr/sbin/nologin and can't be SSH'd
+#      into). `deploy` needs:
+#        - SSH key auth (the public half of DEPLOY_SSH_KEY below)
+#        - write access to /opt/comp-intel/backend and /opt/comp-intel/frontend
+#        - passwordless sudo, scoped ONLY to:
+#            systemctl restart comp-intel-backend
+#            systemctl reload nginx
+#            nginx -t
+#            cp <src> /etc/nginx/sites-available/comp-intel.conf
+#            ln -sf /etc/nginx/sites-available/comp-intel.conf /etc/nginx/sites-enabled/comp-intel.conf
+#          (a dedicated /etc/sudoers.d/comp-intel-deploy file, not blanket sudo)
+#   2. Add repo secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (private
+#      key), DEPLOY_SSH_KNOWN_HOSTS (`ssh-keyscan <host>` output)
+#   3. Change the trigger below to also run on push to main, if desired
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Sync backend code
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            --exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' \
+            --exclude='.mypy_cache' --exclude='.ruff_cache' \
+            --exclude='.env' --exclude='.env.test' \
+            backend/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/comp-intel/backend/
+
+      - name: Sync frontend build
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            frontend/dist/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/comp-intel/frontend/dist/
+
+      - name: Install dependencies, run migrations, restart backend
+        run: |
+          ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<'EOF'
+          set -euo pipefail
+          cd /opt/comp-intel/backend
+          .venv/bin/pip install -e .
+          .venv/bin/alembic upgrade head
+          sudo systemctl restart comp-intel-backend
+          EOF
+
+      - name: Update nginx config if changed
+        run: |
+          scp -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
+            deploy/nginx/comp-intel.conf \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/comp-intel.conf
+          ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<'EOF'
+          set -euo pipefail
+          if ! cmp -s /tmp/comp-intel.conf /etc/nginx/sites-available/comp-intel.conf 2>/dev/null; then
+            sudo cp /tmp/comp-intel.conf /etc/nginx/sites-available/comp-intel.conf
+            sudo ln -sf /etc/nginx/sites-available/comp-intel.conf /etc/nginx/sites-enabled/comp-intel.conf
+            sudo nginx -t
+            sudo systemctl reload nginx
+          fi
+          rm /tmp/comp-intel.conf
+          EOF
+
+      - name: Verify deployment
+        run: |
+          curl -sf --retry 10 --retry-delay 2 --retry-connrefused \
+            http://${{ secrets.DEPLOY_HOST }}/api/v1/health
