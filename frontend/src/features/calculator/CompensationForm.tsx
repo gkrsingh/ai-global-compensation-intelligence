@@ -8,14 +8,7 @@ import {
   type Country,
   type Currency,
 } from '../../api/client';
-
-const COMPONENT_TYPE_OPTIONS: { value: ComponentType; label: string }[] = [
-  { value: 'base', label: 'Base salary' },
-  { value: 'bonus', label: 'Bonus' },
-  { value: 'equity', label: 'Equity' },
-  { value: 'benefit', label: 'Benefit' },
-  { value: 'allowance', label: 'Allowance' },
-];
+import { COMPONENT_TYPE_LABELS, COMPONENT_TYPE_ORDER } from './labels';
 
 interface ComponentRow {
   key: string;
@@ -227,9 +220,9 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
                   updateRow(row.key, { component_type: event.target.value as ComponentType })
                 }
               >
-                {COMPONENT_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {COMPONENT_TYPE_ORDER.map((type) => (
+                  <option key={type} value={type}>
+                    {COMPONENT_TYPE_LABELS[type]}
                   </option>
                 ))}
               </select>

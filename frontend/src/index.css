@@ -84,3 +84,39 @@ fieldset {
 .error-banner ul {
   margin: 0;
 }
+
+.results-summary {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.results-summary > div {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.results-summary dt {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.results-summary dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.5rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
