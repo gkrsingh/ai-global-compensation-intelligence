@@ -220,6 +220,65 @@ _TAX_RULE_SETS: list[dict[str, Any]] = [
         ],
     },
     {
+        "country_code": "IN",
+        "currency_code": "INR",
+        "name": "India Income Tax — New Regime (FY 2026-27)",
+        "regime": "new",
+        "filing_status": None,
+        "standard_deduction": Decimal("75000.00"),
+        "effective_date": date(2026, 4, 1),
+        "end_date": date(2027, 3, 31),
+        "source_url": "https://www.axismaxlife.com/blog/tax-savings/income-tax-slab-2026-27",
+        "source_note": (
+            "FY 2025-26's rule set above ended 2026-03-31; as of seeding "
+            "(Aug 2026) FY 2026-27 is the currently-active fiscal year, so "
+            "a distinct rule set is needed rather than silently extending "
+            "the old one's end_date - each fiscal year is its own "
+            "confirmed legal fact, even when unchanged. Union Budget 2026 "
+            "explicitly confirmed no change to new regime slabs or the "
+            "standard deduction vs FY 2025-26 (checked, not assumed - same "
+            "discipline as the Spain 2025-vs-2026 check). Same sourcing "
+            "caveat as the FY 2025-26 rule set: incometaxindia.gov.in "
+            "blocked automated fetch, cross-source verified only - to be "
+            "personally verified. Same Section 87A rebate and age-under-60 "
+            "scope caveats as FY 2025-26 apply here too."
+        ),
+        "brackets": [
+            (TaxComponent.INCOME_TAX, Decimal("0"), Decimal("400000"), Decimal("0.00000")),
+            (TaxComponent.INCOME_TAX, Decimal("400000"), Decimal("800000"), Decimal("0.05000")),
+            (TaxComponent.INCOME_TAX, Decimal("800000"), Decimal("1200000"), Decimal("0.10000")),
+            (TaxComponent.INCOME_TAX, Decimal("1200000"), Decimal("1600000"), Decimal("0.15000")),
+            (TaxComponent.INCOME_TAX, Decimal("1600000"), Decimal("2000000"), Decimal("0.20000")),
+            (TaxComponent.INCOME_TAX, Decimal("2000000"), Decimal("2400000"), Decimal("0.25000")),
+            (TaxComponent.INCOME_TAX, Decimal("2400000"), None, Decimal("0.30000")),
+        ],
+    },
+    {
+        "country_code": "IN",
+        "currency_code": "INR",
+        "name": "India Income Tax — Old Regime (FY 2026-27)",
+        "regime": "old",
+        "filing_status": None,
+        "standard_deduction": Decimal("50000.00"),
+        "effective_date": date(2026, 4, 1),
+        "end_date": date(2027, 3, 31),
+        "source_url": "https://www.axismaxlife.com/blog/tax-savings/income-tax-slab-2026-27",
+        "source_note": (
+            "Same FY 2026-27 currency reasoning as the new regime FY "
+            "2026-27 rule set above. Union Budget 2026 confirmed no change "
+            "to old regime slabs vs FY 2025-26. Same sourcing caveat "
+            "(primary source blocked, cross-source verified - to be "
+            "personally verified), same deductions-not-modeled and "
+            "Section 87A caveats as FY 2025-26's old regime rule set."
+        ),
+        "brackets": [
+            (TaxComponent.INCOME_TAX, Decimal("0"), Decimal("250000"), Decimal("0.00000")),
+            (TaxComponent.INCOME_TAX, Decimal("250000"), Decimal("500000"), Decimal("0.05000")),
+            (TaxComponent.INCOME_TAX, Decimal("500000"), Decimal("1000000"), Decimal("0.20000")),
+            (TaxComponent.INCOME_TAX, Decimal("1000000"), None, Decimal("0.30000")),
+        ],
+    },
+    {
         "country_code": "ES",
         "currency_code": "EUR",
         "name": "Spain IRPF (State Scale) + Seguridad Social (2026)",

@@ -12,13 +12,32 @@ from sqlalchemy.orm import Session, sessionmaker
 # default of compintel_dev) before app.core.config ever loads.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env.test", override=True)
 
-from app.db.session import get_db  # noqa: E402
+from app.db.session import SessionLocal, get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.reference_data.seed import seed_all  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _seed_reference_data() -> None:
+    """Ensure reference/taxonomy data exists before any test runs.
+
+    seed_all() upserts by natural key, so this is safe to run once per
+    test session even if something else also seeds compintel_test
+    separately (e.g. a future CI step) - never duplicates.
+    """
+    with SessionLocal() as session:
+        seed_all(session)
 
 
 @pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture()
+def db_session() -> Generator[Session, None, None]:
+    with SessionLocal() as session:
+        yield session
 
 
 @pytest.fixture()
