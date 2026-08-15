@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.compensation.models import Calculation, CompensationInput
-from app.reference_data.models import Country
+from app.reference_data.models import Country, EmploymentType, ExperienceLevel, JobFamily
 
 
 def test_create_calculation_us_single_filer(client: TestClient, db_session: Session) -> None:
@@ -174,6 +174,67 @@ def test_as_of_date_defaults_to_today_when_omitted(
 
     persisted = db_session.get(Calculation, body["id"])
     assert persisted is not None
+    db_session.delete(persisted)
+    db_session.delete(persisted.compensation_input)
+    db_session.commit()
+
+
+def test_invalid_component_type_returns_422(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/calculations",
+        json={
+            "country_code": "US",
+            "target_currency_code": "USD",
+            "components": [{"component_type": "salary", "amount": "1000", "currency_code": "USD"}],
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_create_calculation_with_full_optional_metadata(
+    client: TestClient, db_session: Session
+) -> None:
+    """Unlike test_unknown_experience_level_id_returns_404 (which only
+    proves the rejection path), this proves the happy path: valid
+    job_family/experience_level/employment_type ids actually persist.
+    """
+    job_family = db_session.scalar(
+        select(JobFamily).where(JobFamily.name == "Software Engineering")
+    )
+    experience_level = db_session.scalar(
+        select(ExperienceLevel).where(ExperienceLevel.name == "Senior")
+    )
+    employment_type = db_session.scalar(
+        select(EmploymentType).where(EmploymentType.code == "FULL_TIME")
+    )
+    assert job_family is not None
+    assert experience_level is not None
+    assert employment_type is not None
+
+    response = client.post(
+        "/api/v1/calculations",
+        json={
+            "country_code": "US",
+            "filing_status": "single",
+            "target_currency_code": "USD",
+            "job_family_id": job_family.id,
+            "experience_level_id": experience_level.id,
+            "employment_type_id": employment_type.id,
+            "components": [
+                {"component_type": "base", "amount": "100000.00", "currency_code": "USD"}
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+
+    persisted = db_session.get(Calculation, body["id"])
+    assert persisted is not None
+    assert persisted.compensation_input.job_family_id == job_family.id
+    assert persisted.compensation_input.experience_level_id == experience_level.id
+    assert persisted.compensation_input.employment_type_id == employment_type.id
+
     db_session.delete(persisted)
     db_session.delete(persisted.compensation_input)
     db_session.commit()
