@@ -126,6 +126,41 @@ def test_india_new_regime_income_entirely_in_zero_rate_bracket(db_session: Sessi
     assert tax_components == {"income_tax"}
 
 
+def test_india_new_regime_spanning_four_brackets(db_session: Session) -> None:
+    """Rs15,00,000 base, India new regime FY2026-27 - the step 6
+    verification example, spanning real brackets with real tax owed
+    (unlike the zero-bracket case above).
+
+    Hand math:
+      taxable_income = 1500000 - 75000 (standard deduction) = 1425000
+      [0,400000)          400000 * 0%  =      0.00
+      [400000,800000)     400000 * 5%  =  20000.00
+      [800000,1200000)    400000 * 10% =  40000.00
+      [1200000,1600000)  (1425000-1200000)=225000 * 15% = 33750.00
+      [1600000, None)    1425000 doesn't reach this bracket -> 0.00
+      total_tax = 0 + 20000 + 40000 + 33750 = 93750.00
+      net = 1500000 - 93750 = 1406250.00
+    """
+    india = _country(db_session, "IN")
+    inr = _currency(db_session, "INR")
+
+    comp_input = CompensationInput(
+        country_id=india.id,
+        target_currency_id=inr.id,
+        regime="new",
+        as_of_date=date.today(),
+    )
+    comp_input.components.append(_component(ComponentType.BASE, "1500000.00", inr))
+    db_session.add(comp_input)
+    db_session.flush()
+
+    calculation = run_calculation(db_session, comp_input)
+
+    assert calculation.gross_amount == Decimal("1500000.00")
+    assert calculation.total_tax_amount == Decimal("93750.00")
+    assert calculation.net_amount == Decimal("1406250.00")
+
+
 def test_spain_combines_income_tax_and_social_security(db_session: Session) -> None:
     """EUR50,000 base, Spain: state IRPF scale (no standard_deduction
     seeded, so income_tax base = full gross) plus social_security.
