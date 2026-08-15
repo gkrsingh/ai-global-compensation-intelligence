@@ -7,6 +7,7 @@ import { ResultsView } from './ResultsView';
 const US_CALCULATION: CalculationOut = {
   id: 2,
   compensation_input_id: 4,
+  user_id: null,
   engine_version: '1.0.0',
   gross_amount: '150000.00',
   total_compensation_amount: '150000.00',
@@ -76,6 +77,7 @@ const US_CALCULATION: CalculationOut = {
 const NO_TAX_RULE_SET_CALCULATION: CalculationOut = {
   id: 3,
   compensation_input_id: 5,
+  user_id: null,
   engine_version: '1.0.0',
   gross_amount: '50000.00',
   total_compensation_amount: '50000.00',
@@ -158,5 +160,15 @@ describe('ResultsView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New calculation' }));
 
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a "saved to your history" note only when the calculation is tagged to a user', () => {
+    const { rerender } = render(
+      <ResultsView calculation={{ ...US_CALCULATION, user_id: null }} onReset={vi.fn()} />,
+    );
+    expect(screen.queryByText('Saved to your history.')).not.toBeInTheDocument();
+
+    rerender(<ResultsView calculation={{ ...US_CALCULATION, user_id: 7 }} onReset={vi.fn()} />);
+    expect(screen.getByText('Saved to your history.')).toBeInTheDocument();
   });
 });

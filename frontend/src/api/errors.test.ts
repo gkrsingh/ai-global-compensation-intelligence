@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError } from '../../api/client';
+import { ApiError } from './client';
 import { friendlyErrorLines } from './errors';
 
 describe('friendlyErrorLines', () => {
@@ -51,5 +51,16 @@ describe('friendlyErrorLines', () => {
       new ApiError('unknown_country', 'Unknown country code: ZZ', null),
     );
     expect(lines).toEqual(['Unknown country code: ZZ']);
+  });
+
+  it('shows the raw backend message for auth error codes (no special-casing needed)', () => {
+    expect(
+      friendlyErrorLines(new ApiError('invalid_credentials', 'Invalid email or password', null)),
+    ).toEqual(['Invalid email or password']);
+    expect(
+      friendlyErrorLines(
+        new ApiError('email_already_registered', 'An account with this email already exists', null),
+      ),
+    ).toEqual(['An account with this email already exists']);
   });
 });

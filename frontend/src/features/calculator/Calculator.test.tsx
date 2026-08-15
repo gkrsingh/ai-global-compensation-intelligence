@@ -2,12 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { CalculationOut } from '../../api/client';
+import { AuthProvider } from '../auth/AuthContext';
 import { COUNTRIES, stubFetch } from '../../test/apiMocks';
 import { Calculator } from './Calculator';
 
 const CALCULATION: CalculationOut = {
   id: 1,
   compensation_input_id: 1,
+  user_id: null,
   engine_version: '1.0.0',
   gross_amount: '50000.00',
   total_compensation_amount: '50000.00',
@@ -33,6 +35,14 @@ const CALCULATION: CalculationOut = {
   created_at: '2026-08-15T13:08:16.326507Z',
 };
 
+function renderCalculator() {
+  return render(
+    <AuthProvider>
+      <Calculator />
+    </AuthProvider>,
+  );
+}
+
 async function fillAndSubmit() {
   await screen.findByDisplayValue('Spain (ES)');
   fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '50000' } });
@@ -47,7 +57,7 @@ describe('Calculator', () => {
   it('renders ResultsView with the real computed data after a successful submission', async () => {
     stubFetch({ countries: COUNTRIES, calculation: CALCULATION });
 
-    render(<Calculator />);
+    renderCalculator();
     await fillAndSubmit();
 
     expect(await screen.findByText('Result')).toBeInTheDocument();
@@ -70,7 +80,7 @@ describe('Calculator', () => {
       },
     });
 
-    render(<Calculator />);
+    renderCalculator();
     await fillAndSubmit();
 
     expect(
@@ -85,12 +95,26 @@ describe('Calculator', () => {
   it('returns to a fresh form when "New calculation" is clicked from results', async () => {
     stubFetch({ countries: COUNTRIES, calculation: CALCULATION });
 
-    render(<Calculator />);
+    renderCalculator();
     await fillAndSubmit();
     await screen.findByText('Result');
 
     fireEvent.click(screen.getByRole('button', { name: 'New calculation' }));
 
     expect(await screen.findByRole('button', { name: 'Calculate' })).toBeInTheDocument();
+  });
+
+  it('still succeeds and shows a session-expired notice when the backend rejects a stale token', async () => {
+    stubFetch({
+      countries: COUNTRIES,
+      calculation: CALCULATION,
+      calculationAuthWarning: 'invalid_or_expired_token',
+    });
+
+    renderCalculator();
+    await fillAndSubmit();
+
+    expect(await screen.findByText('Result')).toBeInTheDocument();
+    expect(screen.getByText(/Your session expired/)).toBeInTheDocument();
   });
 });

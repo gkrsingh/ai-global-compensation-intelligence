@@ -1,4 +1,4 @@
-import type { ApiError } from '../../api/client';
+import type { ApiError } from './client';
 
 interface ValidationDetail {
   loc?: unknown;
@@ -30,11 +30,11 @@ function formatValidationDetails(details: unknown): string[] {
 }
 
 /**
- * Maps a backend ApiError to plain-language lines for display. Most codes
- * (unknown_country, unknown_currency, ...) already carry a human-phrased
- * message from the backend and don't need special-casing - only the two
- * codes that need extra context beyond their raw message are handled
- * explicitly here.
+ * Maps a backend ApiError to plain-language lines for display. Shared
+ * across features (calculator, auth) since it's generic - most codes
+ * already carry a human-phrased message from the backend and don't need
+ * special-casing; only codes that need extra context beyond their raw
+ * message are handled explicitly here.
  */
 export function friendlyErrorLines(error: ApiError): string[] {
   switch (error.code) {

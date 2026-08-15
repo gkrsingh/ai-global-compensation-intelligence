@@ -1,4 +1,5 @@
 import type { components } from './schema';
+import { getAccessToken } from './tokenStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -19,6 +20,10 @@ export type CompensationComponentIn = components['schemas']['CompensationCompone
 export type CompensationInputCreate = components['schemas']['CompensationInputCreate'];
 export type CalculationOut = components['schemas']['CalculationOut'];
 export type TaxRuleSet = components['schemas']['TaxRuleSetOut'];
+export type UserOut = components['schemas']['UserOut'];
+export type TokenPairOut = components['schemas']['TokenPairOut'];
+export type AccessTokenOut = components['schemas']['AccessTokenOut'];
+export type PaginatedCalculationsOut = components['schemas']['PaginatedCalculationsOut'];
 
 /**
  * The FastAPI-generated OpenAPI schema documents 422 responses as
@@ -73,14 +78,100 @@ export async function fetchTaxRuleSets(countryCode: string): Promise<TaxRuleSet[
   return (await response.json()) as TaxRuleSet[];
 }
 
-export async function createCalculation(payload: CompensationInputCreate): Promise<CalculationOut> {
+// Matches the backend's AUTH_WARNING_HEADER (app/compensation/api.py) -
+// present when a bearer token was sent but rejected, so the calculation
+// still succeeded anonymously rather than failing outright.
+const AUTH_WARNING_HEADER = 'X-Auth-Warning';
+
+export interface CreateCalculationResult {
+  calculation: CalculationOut;
+  authWarning: string | null;
+}
+
+export async function createCalculation(
+  payload: CompensationInputCreate,
+): Promise<CreateCalculationResult> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/calculations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
   }
-  return (await response.json()) as CalculationOut;
+  return {
+    calculation: (await response.json()) as CalculationOut,
+    authWarning: response.headers.get(AUTH_WARNING_HEADER),
+  };
+}
+
+export async function register(email: string, password: string): Promise<UserOut> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as UserOut;
+}
+
+export async function login(email: string, password: string): Promise<TokenPairOut> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as TokenPairOut;
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<AccessTokenOut> {
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as AccessTokenOut;
+}
+
+export async function logoutRequest(refreshToken: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+}
+
+export async function fetchMyCalculations(
+  limit: number,
+  offset: number,
+): Promise<PaginatedCalculationsOut> {
+  const accessToken = getAccessToken();
+  const headers: Record<string, string> = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+  const response = await fetch(
+    `${API_BASE_URL}/calculations/mine?limit=${limit}&offset=${offset}`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as PaginatedCalculationsOut;
 }

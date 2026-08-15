@@ -1,6 +1,14 @@
 import { vi } from 'vitest';
 
-import type { CalculationOut, Country, TaxRuleSet } from '../api/client';
+import type {
+  AccessTokenOut,
+  CalculationOut,
+  Country,
+  PaginatedCalculationsOut,
+  TaxRuleSet,
+  TokenPairOut,
+  UserOut,
+} from '../api/client';
 
 interface ErrorResponse {
   status: number;
@@ -11,61 +19,100 @@ interface FetchStubs {
   countries?: Country[];
   taxRuleSets?: Record<string, TaxRuleSet[]>;
   calculation?: CalculationOut | ErrorResponse;
+  // Simulates the backend's X-Auth-Warning response header on the
+  // calculation response, without needing a real expired token.
+  calculationAuthWarning?: string;
+  register?: UserOut | ErrorResponse;
+  login?: TokenPairOut | ErrorResponse;
+  refresh?: AccessTokenOut | ErrorResponse;
+  logout?: ErrorResponse; // success is always a bare 204, nothing to configure
+  myCalculations?: PaginatedCalculationsOut | ErrorResponse;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
   return typeof value === 'object' && value !== null && 'status' in value && 'body' in value;
 }
 
+function mockResponse(
+  ok: boolean,
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
+  return Promise.resolve({
+    ok,
+    status,
+    json: () => Promise.resolve(body),
+    headers: { get: (name: string) => headers[name] ?? null },
+  });
+}
+
+function respondFrom(
+  value: unknown,
+  successStatus: number,
+  headers: Record<string, string> = {},
+): ReturnType<typeof mockResponse> {
+  if (value && isErrorResponse(value)) {
+    return mockResponse(false, value.status, value.body);
+  }
+  return mockResponse(true, successStatus, value, headers);
+}
+
 /**
  * A single global fetch mock, dispatching by URL/method, standing in for
- * the three real endpoints the calculator feature calls. Mirrors
+ * every real endpoint the calculator and auth features call. Mirrors
  * HealthStatus.test.tsx's vi.stubGlobal('fetch', ...) pattern, extended
  * to route by URL since these components hit more than one endpoint.
  */
 export function stubFetch(stubs: FetchStubs) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.toString();
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    const method = init?.method ?? 'GET';
 
-      const taxRuleSetsMatch = /\/countries\/([^/]+)\/tax-rule-sets/.exec(url);
-      if (taxRuleSetsMatch) {
-        const ruleSets = stubs.taxRuleSets?.[taxRuleSetsMatch[1]] ?? [];
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () => Promise.resolve(ruleSets),
-        });
+    const taxRuleSetsMatch = /\/countries\/([^/]+)\/tax-rule-sets/.exec(url);
+    if (taxRuleSetsMatch) {
+      return mockResponse(true, 200, stubs.taxRuleSets?.[taxRuleSetsMatch[1]] ?? []);
+    }
+
+    if (url.endsWith('/countries')) {
+      return mockResponse(true, 200, stubs.countries ?? []);
+    }
+
+    if (url.includes('/calculations/mine')) {
+      return respondFrom(
+        stubs.myCalculations ?? { items: [], total: 0, limit: 20, offset: 0 },
+        200,
+      );
+    }
+
+    if (url.endsWith('/calculations') && method === 'POST') {
+      const headers: Record<string, string> = stubs.calculationAuthWarning
+        ? { 'X-Auth-Warning': stubs.calculationAuthWarning }
+        : {};
+      return respondFrom(stubs.calculation, 201, headers);
+    }
+
+    if (url.endsWith('/auth/register')) {
+      return respondFrom(stubs.register, 201);
+    }
+    if (url.endsWith('/auth/login')) {
+      return respondFrom(stubs.login, 200);
+    }
+    if (url.endsWith('/auth/refresh')) {
+      return respondFrom(stubs.refresh, 200);
+    }
+    if (url.endsWith('/auth/logout')) {
+      if (stubs.logout) {
+        return mockResponse(false, stubs.logout.status, stubs.logout.body);
       }
+      return mockResponse(true, 204, null);
+    }
 
-      if (url.endsWith('/countries')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () => Promise.resolve(stubs.countries ?? []),
-        });
-      }
+    return Promise.reject(new Error(`Unhandled fetch in test: ${url}`));
+  });
 
-      if (url.endsWith('/calculations') && init?.method === 'POST') {
-        const calculation = stubs.calculation;
-        if (calculation && isErrorResponse(calculation)) {
-          return Promise.resolve({
-            ok: false,
-            status: calculation.status,
-            json: () => Promise.resolve(calculation.body),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          status: 201,
-          json: () => Promise.resolve(calculation),
-        });
-      }
-
-      return Promise.reject(new Error(`Unhandled fetch in test: ${url}`));
-    }),
-  );
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
 }
 
 export const CURRENCY_USD = { code: 'USD', name: 'US Dollar', symbol: '$' };

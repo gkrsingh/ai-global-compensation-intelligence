@@ -19,6 +19,8 @@ export function ResultsView({ calculation, onReset }: ResultsViewProps) {
     <section>
       <h2>Result</h2>
 
+      {calculation.user_id !== null && <p role="status">Saved to your history.</p>}
+
       <dl className="results-summary">
         <div>
           <dt>Gross compensation (cash only, before tax)</dt>
