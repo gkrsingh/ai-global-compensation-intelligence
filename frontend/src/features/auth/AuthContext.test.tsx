@@ -5,6 +5,16 @@ import { getAccessToken, persistSession } from '../../api/tokenStore';
 import { stubFetch } from '../../test/apiMocks';
 import { AuthProvider, useAuth } from './AuthContext';
 
+// Throughout this file, waiting is done with screen.findByText(<the
+// specific status string>) rather than screen.findByTestId('status') +
+// .toHaveTextContent(...). findByTestId resolves as soon as the element
+// EXISTS - true from the very first "loading" render - and does not poll
+// for its text to change afterward, so using it to mean "wait until this
+// state is reached" is a race: the assertion can run before the async
+// state update it's meant to observe has actually landed. findByText
+// genuinely polls until an element with that exact text appears. This
+// bug was real, not theoretical - the original version of this file
+// passed locally every time but failed nondeterministically in CI.
 function Probe() {
   const { status, email, login, register, logout, handleAuthWarning } = useAuth();
   return (
@@ -41,7 +51,7 @@ describe('AuthProvider', () => {
 
     renderProbe();
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('anonymous');
+    expect(await screen.findByText('anonymous')).toBeInTheDocument();
   });
 
   it('silently restores an authenticated session from a valid stored refresh token', async () => {
@@ -50,7 +60,7 @@ describe('AuthProvider', () => {
 
     renderProbe();
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('authenticated');
+    expect(await screen.findByText('authenticated')).toBeInTheDocument();
     expect(screen.getByTestId('email')).toHaveTextContent('restored@example.com');
     expect(getAccessToken()).toBe('new-access-token');
   });
@@ -66,7 +76,7 @@ describe('AuthProvider', () => {
 
     renderProbe();
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('anonymous');
+    expect(await screen.findByText('anonymous')).toBeInTheDocument();
     expect(getAccessToken()).toBeNull();
   });
 
@@ -80,11 +90,11 @@ describe('AuthProvider', () => {
     });
 
     renderProbe();
-    await screen.findByTestId('status');
+    await screen.findByText('anonymous');
 
     fireEvent.click(screen.getByText('login'));
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('authenticated');
+    expect(await screen.findByText('authenticated')).toBeInTheDocument();
     expect(screen.getByTestId('email')).toHaveTextContent('probe@example.com');
     expect(getAccessToken()).toBe('login-access-token');
   });
@@ -100,11 +110,11 @@ describe('AuthProvider', () => {
     });
 
     renderProbe();
-    await screen.findByTestId('status');
+    await screen.findByText('anonymous');
 
     fireEvent.click(screen.getByText('register'));
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('authenticated');
+    expect(await screen.findByText('authenticated')).toBeInTheDocument();
     expect(getAccessToken()).toBe('register-access-token');
   });
 
@@ -118,13 +128,13 @@ describe('AuthProvider', () => {
     });
 
     renderProbe();
-    await screen.findByTestId('status');
+    await screen.findByText('anonymous');
     fireEvent.click(screen.getByText('login'));
     await screen.findByText('authenticated');
 
     fireEvent.click(screen.getByText('logout'));
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('anonymous');
+    expect(await screen.findByText('anonymous')).toBeInTheDocument();
     expect(getAccessToken()).toBeNull();
   });
 
@@ -138,13 +148,13 @@ describe('AuthProvider', () => {
     });
 
     renderProbe();
-    await screen.findByTestId('status');
+    await screen.findByText('anonymous');
     fireEvent.click(screen.getByText('login'));
     await screen.findByText('authenticated');
 
     fireEvent.click(screen.getByText('auth-warning'));
 
-    expect(await screen.findByTestId('status')).toHaveTextContent('anonymous');
+    expect(await screen.findByText('anonymous')).toBeInTheDocument();
     expect(getAccessToken()).toBeNull();
   });
 });
