@@ -1,13 +1,18 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import OptionalAuthResult, get_current_user_optional
+from app.auth.dependencies import OptionalAuthResult, get_current_user, get_current_user_optional
+from app.auth.models import User
 from app.compensation.engine import run_calculation
 from app.compensation.models import Calculation, CompensationComponent, CompensationInput
-from app.compensation.schemas import CalculationOut, CompensationInputCreate
+from app.compensation.schemas import (
+    CalculationOut,
+    CompensationInputCreate,
+    PaginatedCalculationsOut,
+)
 from app.compensation.services.currency import MissingExchangeRateError
 from app.core.exceptions import AppError
 from app.db.session import get_db
@@ -102,3 +107,29 @@ def create_calculation(
     db.commit()
     db.refresh(calculation)
     return calculation
+
+
+@router.get("/calculations/mine", response_model=PaginatedCalculationsOut)
+def list_my_calculations(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PaginatedCalculationsOut:
+    """Auth is required here (unlike POST /calculations) - there is no
+    such thing as anonymous history to return, so "not logged in" really
+    is a blocking condition for this one endpoint.
+    """
+    base_query = select(Calculation).where(Calculation.user_id == current_user.id)
+
+    total = db.scalar(select(func.count()).select_from(base_query.subquery())) or 0
+    items = db.scalars(
+        base_query.order_by(Calculation.created_at.desc()).limit(limit).offset(offset)
+    ).all()
+
+    return PaginatedCalculationsOut(
+        items=[CalculationOut.model_validate(item) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )

@@ -40,3 +40,10 @@ class CalculationOut(BaseModel):
     net_amount: Decimal | None
     breakdown: dict[str, Any]
     created_at: datetime
+
+
+class PaginatedCalculationsOut(BaseModel):
+    items: list[CalculationOut]
+    total: int
+    limit: int
+    offset: int
