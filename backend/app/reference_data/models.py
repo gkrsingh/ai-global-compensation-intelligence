@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -111,7 +112,9 @@ class TaxRuleSet(Base):
     filing_status: Mapped[str | None] = mapped_column(String(32))
     standard_deduction: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     effective_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date | None] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(
+        Date, comment="NULL means this rule set has no known end date (still current)."
+    )
     source_url: Mapped[str | None] = mapped_column(String(512))
     source_note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -133,12 +136,35 @@ class TaxBracket(Base):
     """
 
     __tablename__ = "tax_brackets"
+    __table_args__ = (
+        # Catches the most likely real mistake (an accidental duplicate row
+        # during seeding) essentially for free. Does NOT catch overlapping-
+        # but-different-lower_bound ranges — true range-overlap prevention
+        # needs a Postgres EXCLUDE constraint (btree_gist + a range column),
+        # deliberately deferred to Phase 3 when the calculation engine
+        # becomes a real consumer whose correctness depends on it.
+        UniqueConstraint(
+            "tax_rule_set_id",
+            "component",
+            "lower_bound",
+            name="uq_tax_brackets_rule_set_component_lower_bound",
+        ),
+        CheckConstraint(
+            "upper_bound IS NULL OR upper_bound > lower_bound",
+            name="ck_tax_brackets_upper_gt_lower",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tax_rule_set_id: Mapped[int] = mapped_column(ForeignKey("tax_rule_sets.id"))
     component: Mapped[TaxComponent] = mapped_column(Enum(TaxComponent, name="tax_component"))
-    lower_bound: Mapped[Decimal] = mapped_column(Numeric(14, 2))
-    upper_bound: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    lower_bound: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), comment="Inclusive lower bound of this bracket, in the rule set's currency."
+    )
+    upper_bound: Mapped[Decimal | None] = mapped_column(
+        Numeric(14, 2),
+        comment="Exclusive upper bound, in the rule set's currency. NULL = unbounded top bracket.",
+    )
     rate: Mapped[Decimal] = mapped_column(Numeric(6, 5))
 
     tax_rule_set: Mapped[TaxRuleSet] = relationship(back_populates="tax_brackets")
