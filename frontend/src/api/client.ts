@@ -18,6 +18,7 @@ export type ComponentType = components['schemas']['ComponentType'];
 export type CompensationComponentIn = components['schemas']['CompensationComponentIn'];
 export type CompensationInputCreate = components['schemas']['CompensationInputCreate'];
 export type CalculationOut = components['schemas']['CalculationOut'];
+export type TaxRuleSet = components['schemas']['TaxRuleSetOut'];
 
 /**
  * The FastAPI-generated OpenAPI schema documents 422 responses as
@@ -62,6 +63,14 @@ export async function fetchCountries(): Promise<Country[]> {
     throw await parseErrorResponse(response);
   }
   return (await response.json()) as Country[];
+}
+
+export async function fetchTaxRuleSets(countryCode: string): Promise<TaxRuleSet[]> {
+  const response = await fetch(`${API_BASE_URL}/countries/${countryCode}/tax-rule-sets`);
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as TaxRuleSet[];
 }
 
 export async function createCalculation(payload: CompensationInputCreate): Promise<CalculationOut> {

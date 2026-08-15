@@ -33,3 +33,10 @@ export function componentTypeLabel(type: string): string {
 export function taxComponentLabel(component: string): string {
   return TAX_COMPONENT_LABELS[component] ?? component;
 }
+
+// Regime values are free-form strings set per-country in the seed data
+// (e.g. India's "old"/"new") - no fixed enum on the backend, so this is a
+// generic capitalization rather than a per-value lookup table.
+export function regimeLabel(regime: string): string {
+  return `${regime.charAt(0).toUpperCase()}${regime.slice(1)} regime`;
+}

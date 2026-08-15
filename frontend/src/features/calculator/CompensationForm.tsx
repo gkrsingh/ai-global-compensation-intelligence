@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import {
   fetchCountries,
+  fetchTaxRuleSets,
   type ComponentType,
   type CompensationComponentIn,
   type CompensationInputCreate,
   type Country,
   type Currency,
 } from '../../api/client';
-import { COMPONENT_TYPE_LABELS, COMPONENT_TYPE_ORDER } from './labels';
+import { COMPONENT_TYPE_LABELS, COMPONENT_TYPE_ORDER, regimeLabel } from './labels';
 
 interface ComponentRow {
   key: string;
@@ -46,6 +47,8 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
   const [targetCurrencyCode, setTargetCurrencyCode] = useState('');
   const [rows, setRows] = useState<ComponentRow[]>([makeRow('')]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [regimeOptions, setRegimeOptions] = useState<string[]>([]);
+  const [regime, setRegime] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +74,39 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!countryCode) {
+      setRegimeOptions([]);
+      setRegime('');
+      return;
+    }
+    let cancelled = false;
+
+    fetchTaxRuleSets(countryCode)
+      .then((ruleSets) => {
+        if (cancelled) return;
+        const distinctRegimes = [
+          ...new Set(ruleSets.map((rs) => rs.regime).filter((r): r is string => r !== null)),
+        ];
+        setRegimeOptions(distinctRegimes);
+        setRegime(distinctRegimes.length > 1 ? distinctRegimes[0] : '');
+      })
+      .catch(() => {
+        // Non-fatal: if this lookup fails, the form still works fine for
+        // countries with an unambiguous (single) tax rule set. A country
+        // that actually needs disambiguation would surface a clear
+        // ambiguous_tax_rule_set error on submit instead - better than
+        // silently guessing a regime.
+        if (cancelled) return;
+        setRegimeOptions([]);
+        setRegime('');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countryCode]);
 
   const countries = useMemo(
     () => (countriesState.kind === 'loaded' ? countriesState.countries : []),
@@ -114,6 +150,9 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
     if (!targetCurrencyCode) {
       errors.push('Select a target currency.');
     }
+    if (regimeOptions.length > 1 && !regime) {
+      errors.push('Select a tax regime.');
+    }
     if (rows.length === 0) {
       errors.push('Add at least one compensation component.');
     }
@@ -153,6 +192,7 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
     onSubmit({
       country_code: countryCode,
       target_currency_code: targetCurrencyCode,
+      regime: regimeOptions.length > 1 ? regime : null,
       components,
     });
   }
@@ -206,6 +246,19 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
           ))}
         </select>
       </div>
+
+      {regimeOptions.length > 1 && (
+        <div className="field">
+          <label htmlFor="regime">Tax regime</label>
+          <select id="regime" value={regime} onChange={(event) => setRegime(event.target.value)}>
+            {regimeOptions.map((option) => (
+              <option key={option} value={option}>
+                {regimeLabel(option)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <fieldset>
         <legend>Compensation components</legend>

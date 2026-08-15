@@ -7,6 +7,7 @@ import {
   type CompensationInputCreate,
 } from '../../api/client';
 import { CompensationForm } from './CompensationForm';
+import { friendlyErrorLines } from './errors';
 import { ResultsView } from './ResultsView';
 
 type CalculatorState =
@@ -47,7 +48,11 @@ export function Calculator() {
     <>
       {state.error && (
         <div role="alert" className="error-banner">
-          {state.error.message}
+          <ul>
+            {friendlyErrorLines(state.error).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </div>
       )}
       <CompensationForm onSubmit={handleSubmit} submitting={state.submitting} />
