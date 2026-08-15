@@ -7,6 +7,7 @@ from sqlalchemy import CheckConstraint, Date, DateTime, Enum, ForeignKey, Numeri
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.auth.models import User
 from app.db.base import Base
 from app.reference_data.models import (
     Country,
@@ -97,6 +98,11 @@ class Calculation(Base):
     amounts, per-bracket tax contributions, exchange rates used) as JSONB
     rather than a normalized table — it's inherently nested, variable-length,
     and only ever read alongside its one parent row.
+
+    `user_id` is nullable so anonymous calculations (Phase 4's core flow,
+    still fully supported) keep working exactly as before — a calculation
+    is only tagged to a user if one was authenticated at submission time,
+    set by the API layer (not the engine, which stays auth-agnostic).
     """
 
     __tablename__ = "calculations"
@@ -116,6 +122,7 @@ class Calculation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     compensation_input_id: Mapped[int] = mapped_column(ForeignKey("compensation_inputs.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     engine_version: Mapped[str] = mapped_column(String(32))
     gross_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     total_compensation_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
@@ -127,3 +134,4 @@ class Calculation(Base):
 
     compensation_input: Mapped[CompensationInput] = relationship(back_populates="calculations")
     tax_rule_set: Mapped[TaxRuleSet | None] = relationship()
+    user: Mapped[User | None] = relationship()

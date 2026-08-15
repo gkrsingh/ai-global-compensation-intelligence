@@ -5,8 +5,25 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
 from app.compensation.models import Calculation, CompensationInput
 from app.reference_data.models import Country, EmploymentType, ExperienceLevel, JobFamily
+
+
+def _register_and_login(client: TestClient, email: str) -> str:
+    password = "correct horse battery staple"
+    client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    login = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    access_token: str = login.json()["access_token"]
+    return access_token
+
+
+_BASE_PAYLOAD = {
+    "country_code": "US",
+    "filing_status": "single",
+    "target_currency_code": "USD",
+    "components": [{"component_type": "base", "amount": "1000", "currency_code": "USD"}],
+}
 
 
 def test_create_calculation_us_single_filer(client: TestClient, db_session: Session) -> None:
@@ -268,4 +285,119 @@ def test_create_calculation_with_full_optional_metadata(
 
     db_session.delete(persisted)
     db_session.delete(persisted.compensation_input)
+    db_session.commit()
+
+
+def test_anonymous_calculation_has_no_user_id(client: TestClient, db_session: Session) -> None:
+    """Phase 4's core flow, unaffected by auth existing now: no
+    Authorization header at all is the ordinary, unremarkable case.
+    """
+    response = client.post("/api/v1/calculations", json=_BASE_PAYLOAD)
+
+    assert response.status_code == 201
+    assert response.json()["user_id"] is None
+    assert "X-Auth-Warning" not in response.headers
+
+    persisted = db_session.get(Calculation, response.json()["id"])
+    assert persisted is not None
+    assert persisted.user_id is None
+
+    db_session.delete(persisted)
+    db_session.delete(persisted.compensation_input)
+    db_session.commit()
+
+
+def test_authenticated_calculation_is_tagged_with_the_user(
+    client: TestClient, db_session: Session
+) -> None:
+    access_token = _register_and_login(client, "calc-auth-tag-test@example.com")
+
+    response = client.post(
+        "/api/v1/calculations",
+        json=_BASE_PAYLOAD,
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["user_id"] is not None
+    assert "X-Auth-Warning" not in response.headers
+
+    user = db_session.scalar(select(User).where(User.email == "calc-auth-tag-test@example.com"))
+    assert user is not None
+    assert body["user_id"] == user.id
+
+    persisted = db_session.get(Calculation, body["id"])
+    assert persisted is not None
+    assert persisted.user_id == user.id
+
+    db_session.delete(persisted)
+    db_session.delete(persisted.compensation_input)
+    db_session.delete(user)
+    db_session.commit()
+
+
+def test_calculation_with_an_invalid_token_still_succeeds_anonymously_with_a_warning(
+    client: TestClient, db_session: Session
+) -> None:
+    """The regression test for the step-3 correction: a stale/expired
+    access token must not block this endpoint - it falls back to
+    anonymous (still 201, still computes correctly) and surfaces the fact
+    via a response header instead of a 401.
+    """
+    response = client.post(
+        "/api/v1/calculations",
+        json=_BASE_PAYLOAD,
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["user_id"] is None
+    assert response.headers["X-Auth-Warning"] == "invalid_or_expired_token"
+
+    persisted = db_session.get(Calculation, response.json()["id"])
+    assert persisted is not None
+    assert persisted.user_id is None
+
+    db_session.delete(persisted)
+    db_session.delete(persisted.compensation_input)
+    db_session.commit()
+
+
+def test_two_users_calculations_are_tagged_to_their_own_accounts_not_each_others(
+    client: TestClient, db_session: Session
+) -> None:
+    token_a = _register_and_login(client, "calc-user-a-test@example.com")
+    token_b = _register_and_login(client, "calc-user-b-test@example.com")
+
+    response_a = client.post(
+        "/api/v1/calculations", json=_BASE_PAYLOAD, headers={"Authorization": f"Bearer {token_a}"}
+    )
+    response_b = client.post(
+        "/api/v1/calculations", json=_BASE_PAYLOAD, headers={"Authorization": f"Bearer {token_b}"}
+    )
+
+    user_id_a = response_a.json()["user_id"]
+    user_id_b = response_b.json()["user_id"]
+    assert user_id_a is not None
+    assert user_id_b is not None
+    assert user_id_a != user_id_b
+
+    persisted_a = db_session.get(Calculation, response_a.json()["id"])
+    persisted_b = db_session.get(Calculation, response_b.json()["id"])
+    assert persisted_a is not None
+    assert persisted_b is not None
+    assert persisted_a.user_id == user_id_a
+    assert persisted_b.user_id == user_id_b
+
+    user_a = db_session.scalar(select(User).where(User.email == "calc-user-a-test@example.com"))
+    user_b = db_session.scalar(select(User).where(User.email == "calc-user-b-test@example.com"))
+    db_session.delete(persisted_a)
+    db_session.delete(persisted_a.compensation_input)
+    db_session.delete(persisted_b)
+    db_session.delete(persisted_b.compensation_input)
+    assert user_a is not None
+    assert user_b is not None
+    db_session.delete(user_a)
+    db_session.delete(user_b)
     db_session.commit()

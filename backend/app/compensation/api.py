@@ -1,9 +1,10 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import OptionalAuthResult, get_current_user_optional
 from app.compensation.engine import run_calculation
 from app.compensation.models import Calculation, CompensationComponent, CompensationInput
 from app.compensation.schemas import CalculationOut, CompensationInputCreate
@@ -14,6 +15,14 @@ from app.reference_data.models import Country, Currency, EmploymentType, Experie
 from app.reference_data.queries import AmbiguousTaxRuleSetError
 
 router = APIRouter()
+
+# Set when a caller presented a bearer token that turned out to be
+# invalid/expired - the calculation still succeeds anonymously (see
+# get_current_user_optional's docstring for why), but the frontend can
+# use this to tell the user their session lapsed rather than silently
+# saying nothing about why the result didn't land in their history.
+AUTH_WARNING_HEADER = "X-Auth-Warning"
+INVALID_TOKEN_WARNING = "invalid_or_expired_token"
 
 
 def _get_country(db: Session, code: str) -> Country:
@@ -39,7 +48,10 @@ def _check_reference_id(db: Session, model: type, id_: int | None, label: str) -
 
 @router.post("/calculations", response_model=CalculationOut, status_code=status.HTTP_201_CREATED)
 def create_calculation(
-    payload: CompensationInputCreate, db: Session = Depends(get_db)
+    payload: CompensationInputCreate,
+    response: Response,
+    db: Session = Depends(get_db),
+    auth: OptionalAuthResult = Depends(get_current_user_optional),
 ) -> Calculation:
     country = _get_country(db, payload.country_code)
     target_currency = _get_currency(db, payload.target_currency_code)
@@ -81,6 +93,11 @@ def create_calculation(
         ) from exc
     except AmbiguousTaxRuleSetError as exc:
         raise AppError(str(exc), code="ambiguous_tax_rule_set", status_code=422) from exc
+
+    if auth.user is not None:
+        calculation.user_id = auth.user.id
+    if auth.token_rejected:
+        response.headers[AUTH_WARNING_HEADER] = INVALID_TOKEN_WARNING
 
     db.commit()
     db.refresh(calculation)

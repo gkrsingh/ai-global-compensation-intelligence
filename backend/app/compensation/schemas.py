@@ -31,6 +31,7 @@ class CalculationOut(BaseModel):
 
     id: int
     compensation_input_id: int
+    user_id: int | None
     engine_version: str
     gross_amount: Decimal
     total_compensation_amount: Decimal
