@@ -8,7 +8,9 @@ where rates eventually come from (Phase 2's illustrative seed data now,
 a real rate-fetching integration later).
 """
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
+
+from app.compensation.services.money import quantize_amount
 
 
 class MissingExchangeRateError(Exception):
@@ -58,5 +60,4 @@ def convert_amount(
                 raise MissingExchangeRateError(from_currency, to_currency)
             converted = amount / inverse_rate
 
-    quantum = Decimal(1).scaleb(-decimal_places)
-    return converted.quantize(quantum, rounding=ROUND_HALF_UP)
+    return quantize_amount(converted, decimal_places)
