@@ -4,11 +4,12 @@ from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     """Shared declarative base.
 
-    Alembic's env.py points target_metadata at this. Domain model modules
-    are imported below purely for their side effect of registering with
-    Base's metadata — Alembic's autogenerate can't see a model that was
-    never imported anywhere in this chain.
+    Deliberately has NO domain model imports here. Domain modules (compensation,
+    reference_data) import this module to get Base — if this module also
+    imported domain modules for metadata-registration purposes, and one domain
+    (compensation) depends on another (reference_data) which is what triggers
+    this module's own import, that's a real circular import, not just a
+    reorder-able one. Alembic's env.py is the right place for "make sure
+    every model is registered" — it's a standalone script nothing else
+    imports, so it can pull in every domain explicitly without any cycle risk.
     """
-
-
-from app.reference_data import models as reference_data_models  # noqa: E402,F401

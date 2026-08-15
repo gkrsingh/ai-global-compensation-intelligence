@@ -3,8 +3,18 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.compensation import models as compensation_models  # noqa: F401
 from app.core.config import settings
 from app.db.base import Base
+from app.reference_data import models as reference_data_models  # noqa: F401
+
+# The two "models as ..._models" imports above exist purely so every
+# domain's tables register with Base's metadata before autogenerate runs.
+# db/base.py deliberately does not import these itself: compensation
+# depends on reference_data, which is what triggers db.base's own import
+# in the first place - having db.base also import compensation would be a
+# real circular import, not just a reorder-able one. This standalone
+# script has no such constraint, so it's the right place for it.
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,9 +30,6 @@ if config.config_file_name is not None:
 # apply here as everywhere else in the app, and alembic.ini stays secret-free.
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
-# Points autogenerate at the app's declarative Base. No models registered
-# against it yet in Phase 1A, so autogenerate has nothing to detect until
-# the first domain models exist.
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
