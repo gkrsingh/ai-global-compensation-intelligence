@@ -12,13 +12,23 @@ Two variants, because not every route needs the same thing:
   is genuinely useful for a client deciding what to do next.
 
 - get_current_user_optional: for routes like POST /calculations that work
-  both logged in and anonymous. No token -> None, silently anonymous,
-  exactly as intended. A present-but-bad token is still an ERROR, not
-  silently downgraded to anonymous - if a caller sends credentials, an
-  expired token would otherwise fail silently as "your calculation just
-  didn't get saved to your history", which is a confusing way to
-  discover you've been logged out.
+  both logged in and anonymous. Never raises - not on a missing token
+  (ordinary anonymous use) and not on a bad one either. An earlier
+  version of this dependency treated a present-but-invalid token as an
+  error, on the reasoning that silently downgrading to anonymous would
+  hide a confusing "why didn't this save to my history" failure. That
+  reasoning was correct for what it optimized for, but wrong for this
+  endpoint specifically: raising means anyone who leaves the calculator
+  open past the access token's ~15-minute lifetime can no longer
+  calculate AT ALL, not just "won't be saved" - which breaks the phase's
+  own design assumption that the core tool must always work without a
+  valid session. Returns an OptionalAuthResult instead, so the caller
+  still gets the "was a bad token presented" signal (to surface a "your
+  session expired, log in again" message) without the request itself
+  ever failing over it.
 """
+
+from dataclasses import dataclass
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -61,10 +71,24 @@ def get_current_user(
     return _resolve_user(db, credentials.credentials)
 
 
+@dataclass
+class OptionalAuthResult:
+    user: User | None
+    # True only when a bearer token was actually presented and rejected -
+    # distinct from the ordinary "no token at all" anonymous case, which
+    # leaves this False. Lets a caller tell "never logged in" apart from
+    # "was logged in, session lapsed" without the request having to fail.
+    token_rejected: bool
+
+
 def get_current_user_optional(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
-) -> User | None:
+) -> OptionalAuthResult:
     if credentials is None:
-        return None
-    return _resolve_user(db, credentials.credentials)
+        return OptionalAuthResult(user=None, token_rejected=False)
+    try:
+        user = _resolve_user(db, credentials.credentials)
+    except AppError:
+        return OptionalAuthResult(user=None, token_rejected=True)
+    return OptionalAuthResult(user=user, token_rejected=False)
