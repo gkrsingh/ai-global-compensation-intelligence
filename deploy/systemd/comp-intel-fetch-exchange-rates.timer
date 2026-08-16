@@ -1,0 +1,31 @@
+[Unit]
+Description=Daily trigger for comp-intel-fetch-exchange-rates.service
+
+[Timer]
+# ECB publishes its daily reference rates around 16:00 CET/CEST on
+# TARGET2 business days (https://www.ecb.europa.eu/stats/policy_and_
+# exchange_rates/euro_reference_exchange_rates/html/index.en.html), and
+# Frankfurter (which mirrors ECB) reflects that within the hour. 17:30
+# UTC gives a comfortable buffer past both without needing a
+# timezone-aware calendar expression across CET/CEST's DST change.
+#
+# Weekdays only: ECB doesn't publish new rates on weekends, and
+# Frankfurter's own weekend fallback (confirmed empirically in Phase 6 -
+# a Saturday request silently returns the prior Friday's rate) means a
+# weekend run would just re-upsert Friday's already-persisted values -
+# harmless (idempotent by natural key) but pointless.
+OnCalendar=Mon..Fri 17:30 UTC
+
+# Catches up on a run missed while the server was down (maintenance,
+# reboot, ...) by firing shortly after boot instead of silently waiting
+# for the next scheduled slot - a missed day means the calculator
+# briefly serves a stale (not wrong, just outdated) rate rather than
+# risking it compounding into multiple missed days unnoticed.
+Persistent=true
+
+# Spreads load if this unit is ever cloned across multiple environments
+# hitting the same third-party API around the same scheduled moment.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

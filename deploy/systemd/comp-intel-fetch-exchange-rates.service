@@ -1,0 +1,36 @@
+[Unit]
+Description=AI Global Compensation Intelligence - fetch and persist real exchange rates
+# Unlike comp-intel-backend.service, this unit makes an outbound HTTPS call
+# to a third-party provider (Frankfurter), so it needs the network actually
+# configured and reachable, not just the network stack initialized -
+# network-online.target is the stronger guarantee that fits that need.
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=compintel
+Group=compintel
+WorkingDirectory=/opt/comp-intel/backend
+# Same rationale as comp-intel-backend.service: compintel has no real home
+# directory and ProtectHome blocks /home entirely, so HOME must point
+# somewhere real and writable.
+Environment=HOME=/opt/comp-intel/backend
+EnvironmentFile=/opt/comp-intel/backend/.env
+ExecStart=/opt/comp-intel/backend/.venv/bin/python -m app.reference_data.fetch_exchange_rates
+
+# A failed run isn't urgent enough to retry immediately - the daily
+# schedule tries again in <24h regardless, and Frankfurter's rates only
+# update once a day anyway, so there's nothing new to fetch by retrying
+# sooner. Left unset deliberately (see comp-intel-fetch-exchange-rates.timer
+# for the missed-run catch-up behavior instead).
+
+# Hardening, matching comp-intel-backend.service.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/comp-intel/backend
+
+[Install]
+WantedBy=multi-user.target

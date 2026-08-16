@@ -66,6 +66,19 @@ a real, since-fixed bug where the frontend's built bundle called the backend
 directly instead of going through Nginx. Neither has been applied to a real
 server, since none has been provisioned yet.
 
+`deploy/systemd/comp-intel-fetch-exchange-rates.service` (oneshot) and its
+paired `.timer` (weekdays, 17:30 UTC, `Persistent=true` so a run missed
+during downtime catches up at next boot) schedule the real exchange-rate
+ingestion added in Phase 6 (see `backend/app/reference_data/
+fetch_exchange_rates.py`). Both unit files pass `systemd-analyze verify`
+with the same warnings as the already-validated backend unit (harmless
+Windows-mount permission bits, not content issues), and the exact command
+in `ExecStart` has been run for real against the live provider and a real
+database, confirmed by querying `exchange_rates` rows before and after.
+Loading the units into a live systemd instance (`systemctl start/enable`)
+needs root and hasn't been done, for the same reason as the other two
+artifacts — no server is provisioned yet.
+
 `.github/workflows/deploy.yml` is written and reviewed but stays inert
 (`workflow_dispatch` only) until a server exists and its required secrets are
 configured — see the comments at the top of that file for the exact
