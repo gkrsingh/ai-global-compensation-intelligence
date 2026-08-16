@@ -26,7 +26,12 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
-from app.ai.providers.base import AIProvider, AIProviderError, GeneratedText
+from app.ai.providers.base import (
+    DEFAULT_PROVIDER_TIMEOUT,
+    AIProvider,
+    AIProviderError,
+    GeneratedText,
+)
 
 # Same reasoning as AnthropicProvider's DEFAULT_MAX_TOKENS - a bounded
 # ceiling for a short explanation, not an essay, and every extra token is
@@ -45,8 +50,13 @@ class GeminiProvider(AIProvider):
     ) -> None:
         self._model = model
         self._max_tokens = max_tokens
-        http_options = (
-            types.HttpOptions(httpx_client=http_client) if http_client is not None else None
+        # Same reasoning as AnthropicProvider: http_client stays the test-
+        # injection point when provided; production gets an explicit,
+        # bounded-timeout client instead of an unconfigured HttpOptions
+        # (timeout=None) that would otherwise depend on whatever httpx's
+        # own default happens to be.
+        http_options = types.HttpOptions(
+            httpx_client=http_client or httpx.Client(timeout=DEFAULT_PROVIDER_TIMEOUT)
         )
         self._client = genai.Client(api_key=api_key, http_options=http_options)
 

@@ -123,6 +123,25 @@ def test_generate_raises_on_a_connection_error() -> None:
         provider.generate(system_prompt="s", user_prompt="u")
 
 
+def test_generate_raises_cleanly_on_a_timeout_not_a_hang_or_bare_httpx_error() -> None:
+    """Phase 9's external-call resilience audit. Unlike AnthropicProvider,
+    confirmed empirically that the genai SDK does NOT wrap a raw
+    httpx.ReadTimeout into its own error hierarchy - it propagates as a
+    bare httpx.ReadTimeout (an httpx.HTTPError subclass), the same
+    surprise already found for connection errors during Phase 8's own
+    research. The existing `except (genai_errors.APIError,
+    httpx.HTTPError)` clause already covers it correctly for that reason;
+    this test guards that behavior against ever regressing.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("simulated stalled response", request=request)
+
+    provider = _provider_with_handler(handler)
+    with pytest.raises(AIProviderError):
+        provider.generate(system_prompt="s", user_prompt="u")
+
+
 def test_generate_raises_when_a_thinking_model_exhausts_its_budget_with_no_visible_text() -> None:
     """The real failure mode discovered during this provider's own
     research: a thinking-capable model can hit MAX_TOKENS having spent

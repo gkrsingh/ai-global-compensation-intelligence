@@ -115,6 +115,23 @@ def test_get_rate_raises_on_a_connection_error() -> None:
         provider.get_rate("USD", "INR", date(2026, 8, 14))
 
 
+def test_get_rate_raises_cleanly_on_a_timeout_not_a_hang_or_bare_httpx_error() -> None:
+    """Phase 9's external-call resilience audit, applied to the one
+    provider that already had an explicit timeout (timeout=10.0 in
+    FrankfurterProvider.__init__) since Phase 6 - confirming the existing
+    `except httpx.HTTPError` clause (httpx.ReadTimeout is a subclass)
+    genuinely produces a clean ExchangeRateProviderError rather than
+    assuming it does because the except type "should" cover it.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("simulated stalled response", request=request)
+
+    provider = FrankfurterProvider(client=_client_with_handler(handler))
+    with pytest.raises(ExchangeRateProviderError):
+        provider.get_rate("USD", "INR", date(2026, 8, 14))
+
+
 def test_provider_is_usable_as_a_context_manager_and_closes_its_client() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

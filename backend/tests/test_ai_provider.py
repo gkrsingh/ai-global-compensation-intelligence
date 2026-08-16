@@ -113,6 +113,26 @@ def test_generate_raises_on_a_connection_error() -> None:
         provider.generate(system_prompt="s", user_prompt="u")
 
 
+def test_generate_raises_cleanly_on_a_timeout_not_a_hang_or_bare_httpx_error() -> None:
+    """Phase 9's external-call resilience audit: a stalled request must
+    produce a clean, catchable AIProviderError, not an unhandled
+    httpx.ReadTimeout propagating past this adapter. Confirmed empirically
+    (not assumed from reading the SDK) that the Anthropic SDK wraps a raw
+    httpx.ReadTimeout into its own anthropic.APITimeoutError - a subclass
+    of anthropic.APIError, so the existing `except anthropic.APIError`
+    clause already covers it correctly; this test exists to guard that
+    behavior against ever regressing, not because the except clause
+    needed to change.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("simulated stalled response", request=request)
+
+    provider = _provider_with_handler(handler)
+    with pytest.raises(AIProviderError):
+        provider.generate(system_prompt="s", user_prompt="u")
+
+
 def test_generate_raises_when_the_response_was_truncated_by_max_tokens() -> None:
     """A response cut off mid-thought could cut a number off mid-digit
     ("$150,0") in a way that would look fabricated to the numeric-

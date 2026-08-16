@@ -16,6 +16,22 @@ LangChain/CrewAI-style frameworks for this).
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+import httpx
+
+# Shared across every concrete provider (Phase 9, original architecture
+# §14): each SDK's own unconfigured default is either far too permissive
+# (Anthropic's, empirically confirmed: Timeout(connect=5.0, read=600,
+# write=600, pool=600) - a stalled call could hang a worker for ten
+# minutes) or simply unspecified and dependent on httpx's own default
+# (Gemini's, when no client is injected). Neither is an explicit, sane
+# choice this project made on purpose, which is exactly what this phase's
+# external-call audit calls for. 30s read is generous headroom for a
+# single bounded ~1024-token completion while still failing fast enough
+# that a stalled provider produces a clean, prompt AIProviderError instead
+# of a hung request - confirmed with a real induced-timeout test for both
+# providers, not assumed from reading either SDK.
+DEFAULT_PROVIDER_TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0)
+
 
 @dataclass(frozen=True)
 class GeneratedText:

@@ -11,7 +11,12 @@ the real API in the automated suite.
 import anthropic
 import httpx
 
-from app.ai.providers.base import AIProvider, AIProviderError, GeneratedText
+from app.ai.providers.base import (
+    DEFAULT_PROVIDER_TIMEOUT,
+    AIProvider,
+    AIProviderError,
+    GeneratedText,
+)
 
 # A bounded ceiling, not a tuning knob: this is meant to produce a short
 # explanation/negotiation framing, not an essay, and every extra token
@@ -31,7 +36,14 @@ class AnthropicProvider(AIProvider):
     ) -> None:
         self._model = model
         self._max_tokens = max_tokens
-        self._client = anthropic.Anthropic(api_key=api_key, http_client=http_client)
+        # http_client stays the test-injection point (a MockTransport-
+        # backed client) when provided; production (no http_client
+        # passed) gets an explicit, bounded-timeout client instead of
+        # silently falling through to the SDK's own 600s-read default.
+        self._client = anthropic.Anthropic(
+            api_key=api_key,
+            http_client=http_client or httpx.Client(timeout=DEFAULT_PROVIDER_TIMEOUT),
+        )
 
     @property
     def name(self) -> str:
