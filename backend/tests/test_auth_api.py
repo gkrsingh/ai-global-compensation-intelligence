@@ -8,6 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import RefreshToken, User
 from app.auth.security import hash_password, hash_token
+from app.core.rate_limit import AUTH_SENSITIVE_LIMIT
+
+# The rate limit strings (e.g. "5/minute") aren't meant to be parsed
+# elsewhere in the app - only here, to derive exactly how many calls a
+# test needs to make to trip the real limit, so this stays correct even
+# if AUTH_SENSITIVE_LIMIT's number ever changes rather than silently
+# testing a stale hardcoded count.
+_AUTH_SENSITIVE_PER_MINUTE = int(AUTH_SENSITIVE_LIMIT.split("/")[0])
 
 _PASSWORD = "correct horse battery staple"
 
@@ -267,3 +275,49 @@ def test_logout_with_a_token_that_never_existed_still_returns_204(client: TestCl
     """Logout must not be an oracle for whether a token was ever real."""
     response = client.post("/api/v1/auth/logout", json={"refresh_token": "never-existed-at-all"})
     assert response.status_code == 204
+
+
+def test_login_is_rate_limited_after_repeated_attempts(client: TestClient) -> None:
+    """Phase 9's real fix for Phase 5's explicitly-deferred gap: /auth/*
+    had no rate limiting at all. Proven for real here - not just "the
+    decorator is present in the source" - by actually exceeding the limit
+    within one test and observing a genuine 429, using wrong credentials
+    throughout so this test needs no real registered user and can't be
+    confused with the credential-checking logic itself (already covered
+    by test_login_with_wrong_password_and_nonexistent_email_return_
+    identical_errors above).
+    """
+    for _ in range(_AUTH_SENSITIVE_PER_MINUTE):
+        response = _login(client, "rate-limit-probe@example.com", password="wrong")
+        assert response.status_code == 401
+
+    response = _login(client, "rate-limit-probe@example.com", password="wrong")
+
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "rate_limit_exceeded"
+
+
+def test_register_is_rate_limited_independently_of_login(
+    client: TestClient, db_session: Session
+) -> None:
+    """A separate route decorated with the same AUTH_SENSITIVE_LIMIT -
+    proves the limiter is genuinely applied per-route (this test's own
+    register calls aren't affected by the login test above having already
+    spent its limit, and vice versa), not a single global counter that
+    would make routes interfere with each other.
+    """
+    emails = [
+        f"rate-limit-register-probe-{i}@example.com" for i in range(_AUTH_SENSITIVE_PER_MINUTE)
+    ]
+    try:
+        for email in emails:
+            response = _register(client, email)
+            assert response.status_code == 201
+
+        response = _register(client, "rate-limit-register-probe-overflow@example.com")
+
+        assert response.status_code == 429
+        assert response.json()["error"]["code"] == "rate_limit_exceeded"
+    finally:
+        for email in emails:
+            _delete_user_by_email(db_session, email)

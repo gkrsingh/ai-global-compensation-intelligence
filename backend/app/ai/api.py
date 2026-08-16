@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import logging
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.ai.orchestration import (
@@ -14,7 +16,10 @@ from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.core.config import settings
 from app.core.exceptions import AppError
+from app.core.rate_limit import AI_INSIGHT_LIMIT, limiter
 from app.db.session import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -59,7 +64,9 @@ def _insight_target_not_found() -> AppError:
 
 
 @router.post("/ai-insights", response_model=AIInsightOut)
+@limiter.limit(AI_INSIGHT_LIMIT)
 def create_or_get_insight(
+    request: Request,
     payload: AIInsightCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -87,10 +94,15 @@ def create_or_get_insight(
     except UnknownInsightTargetError as exc:
         raise _insight_target_not_found() from exc
     except InsightGenerationFailedError as exc:
-        # The failed attempts ARE persisted - the whole point of this
-        # being a real audit trail rather than a log line - so commit
-        # them even though this call itself reports failure.
+        # The failed attempts ARE persisted as AIAnalysisResult rows -
+        # that's the permanent, queryable audit trail. This log line is a
+        # separate, complementary concern: real-time operational
+        # visibility that doesn't require polling the DB to notice the
+        # numeric-consistency safeguard is repeatedly rejecting output.
         db.commit()
+        logger.warning(
+            "AI insight generation failed numeric-consistency check", extra={"error": str(exc)}
+        )
         raise AppError(
             "AI insight could not be generated for this item right now. Please try again later.",
             code="ai_insight_unavailable",
@@ -98,6 +110,15 @@ def create_or_get_insight(
         ) from exc
     except AIProviderError as exc:
         db.commit()
+        # str(exc) here is the provider adapter's own message (e.g.
+        # "Anthropic API request failed: <httpx error>") - never the raw
+        # request, never headers, so the API key can't end up in this log
+        # line even indirectly (confirmed during Phase 9's secret-leak
+        # sweep: neither provider's exception __str__ includes request
+        # headers, only URL/status/body).
+        logger.warning(
+            "AI provider request failed", extra={"provider": provider.name, "error": str(exc)}
+        )
         raise AppError(
             "The AI service is temporarily unavailable. Please try again later.",
             code="ai_provider_unavailable",

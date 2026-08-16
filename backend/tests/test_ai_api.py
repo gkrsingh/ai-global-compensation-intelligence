@@ -26,7 +26,13 @@ from app.auth.models import User
 from app.compensation.models import Calculation
 from app.core.config import settings
 from app.core.exceptions import AppError
+from app.core.rate_limit import AI_INSIGHT_LIMIT
 from app.main import app
+
+# See test_auth_api.py's identical comment: derived from the real setting
+# rather than hardcoded, so this test can't silently drift out of sync
+# with AI_INSIGHT_LIMIT.
+_AI_INSIGHT_PER_MINUTE = int(AI_INSIGHT_LIMIT.split("/")[0])
 
 
 class _StubProvider(AIProvider):
@@ -151,6 +157,24 @@ def test_get_ai_provider_constructs_anthropic_when_switched(
 
     assert isinstance(provider, AnthropicProvider)
     assert provider.name == "anthropic"
+
+
+def test_get_ai_provider_fails_cleanly_when_anthropic_is_selected_but_unconfigured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The anthropic branch's own missing-key check, mirroring gemini's
+    (test_get_ai_provider_constructs_gemini_by_default_when_configured's
+    sibling failure case) - a real gap this phase's own coverage-
+    completeness audit caught (98% on this file, this exact branch
+    unexercised), not a hypothetical worth adding for its own sake.
+    """
+    monkeypatch.setattr(settings, "ai_provider", "anthropic")
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+
+    with pytest.raises(AppError) as exc_info:
+        get_ai_provider()
+
+    assert exc_info.value.code == "ai_not_configured"
 
 
 def test_get_ai_provider_fails_cleanly_for_an_unrecognized_provider_setting(
@@ -428,4 +452,42 @@ def test_create_insight_for_a_comparison(
     db_session.delete(db_comparison)
     db_session.commit()
     _cleanup_calculations(db_session, [calc_a, calc_b])
+    _cleanup_user(db_session, email)
+
+
+def test_create_insight_is_rate_limited_after_repeated_calls(
+    client: TestClient, db_session: Session, stub_provider: _StubProvider
+) -> None:
+    """Phase 9's direct mitigation for Phase 8's live billing exposure:
+    POST /ai-insights makes a real, externally-billed provider call on a
+    cache miss, and had no rate limiting at all. Every call here targets
+    the SAME calculation, so only the first actually reaches the stub
+    provider (get_or_generate_insight's caching - see
+    app/ai/orchestration.py) - proving the limit still counts cache-hit
+    requests too, not just the (rarer) cache-miss ones that would incur
+    real cost.
+    """
+    email = "ai-api-9@example.com"
+    token = _register_and_login(client, email)
+    calc_id = _create_calculation(client, token)
+
+    for _ in range(_AI_INSIGHT_PER_MINUTE):
+        response = client.post(
+            "/api/v1/ai-insights",
+            json={"calculation_id": calc_id},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.json()
+
+    response = client.post(
+        "/api/v1/ai-insights",
+        json={"calculation_id": calc_id},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "rate_limit_exceeded"
+    assert stub_provider.call_count == 1  # every call past the first was served from cache
+
+    _cleanup_calculations(db_session, [calc_id])
     _cleanup_user(db_session, email)
