@@ -31,6 +31,7 @@ export type ComparisonSummaryOut = components['schemas']['ComparisonSummaryOut']
 export type MetricGapAnalysisOut = components['schemas']['MetricGapAnalysisOut'];
 export type MetricGapEntryOut = components['schemas']['MetricGapEntryOut'];
 export type PaginatedComparisonsOut = components['schemas']['PaginatedComparisonsOut'];
+export type AIInsightOut = components['schemas']['AIInsightOut'];
 
 /**
  * The FastAPI-generated OpenAPI schema documents 422 responses as
@@ -225,4 +226,30 @@ export async function fetchComparison(id: number): Promise<ComparisonDetailOut> 
     throw await parseErrorResponse(response);
   }
   return (await response.json()) as ComparisonDetailOut;
+}
+
+export type AIInsightTarget = { calculationId: number } | { comparisonId: number };
+
+// Deliberately idempotent-safe despite being a POST: the backend returns
+// an already-passed cached result for the same target instead of
+// re-generating (and re-billing) every time - see
+// get_or_generate_insight's own caching logic. Requires auth, same as
+// every comparison endpoint above - AI insight has no anonymous
+// equivalent, since a real per-call cost needs a real identity to
+// attach accountability to.
+export async function createOrGetAIInsight(target: AIInsightTarget): Promise<AIInsightOut> {
+  const body =
+    'calculationId' in target
+      ? { calculation_id: target.calculationId }
+      : { comparison_id: target.comparisonId };
+
+  const response = await fetch(`${API_BASE_URL}/ai-insights`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as AIInsightOut;
 }

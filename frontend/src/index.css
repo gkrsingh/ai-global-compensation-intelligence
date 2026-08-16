@@ -163,6 +163,38 @@ fieldset {
   font-size: 1.25rem;
 }
 
+/* Deliberately its own accent color (purple), distinct from
+   error-banner's red and notice-banner's amber - AI-generated content
+   needs to read as visually different at a glance from the deterministic
+   figures everywhere else on the page, not just be labeled as such in
+   text a reader might skim past. */
+.ai-insight-panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.ai-insight-result {
+  border-left: 3px solid #7c3aed;
+  padding-left: 0.75rem;
+}
+
+.ai-insight-label {
+  color: #7c3aed;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.4rem;
+}
+
+.ai-insight-disclaimer {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin: 0.6rem 0 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

@@ -239,4 +239,31 @@ describe('ResultsView', () => {
     rerender(<ResultsView calculation={{ ...US_CALCULATION, user_id: 7 }} onReset={vi.fn()} />);
     expect(screen.getByText('Saved to your history.')).toBeInTheDocument();
   });
+
+  it('does not show an AI insight panel for an anonymous (unsaved) calculation', () => {
+    render(<ResultsView calculation={{ ...US_CALCULATION, user_id: null }} onReset={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Generate AI insight' })).not.toBeInTheDocument();
+  });
+
+  it('shows an AI insight panel once the calculation is saved to history', () => {
+    render(<ResultsView calculation={{ ...US_CALCULATION, user_id: 7 }} onReset={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Generate AI insight' })).toBeInTheDocument();
+  });
+
+  it('suppresses the AI insight panel in embedded, read-only views (showActions=false)', () => {
+    render(
+      <ResultsView
+        calculation={{ ...US_CALCULATION, user_id: 7 }}
+        onReset={vi.fn()}
+        showActions={false}
+      />,
+    );
+
+    // A comparison's own AIInsightPanel (targeting the comparison as a
+    // whole) already covers this - each per-offer breakdown embedded
+    // inside it doesn't need a second, narrower one of its own.
+    expect(screen.queryByRole('button', { name: 'Generate AI insight' })).not.toBeInTheDocument();
+  });
 });

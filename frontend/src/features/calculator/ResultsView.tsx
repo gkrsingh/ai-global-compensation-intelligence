@@ -1,4 +1,5 @@
 import type { CalculationOut } from '../../api/client';
+import { AIInsightPanel } from '../ai/AIInsightPanel';
 import { parseBreakdown } from './breakdown';
 import { formatCurrency, formatRate } from './format';
 import { componentTypeLabel, taxComponentLabel } from './labels';
@@ -163,6 +164,20 @@ export function ResultsView({
             .map(([pair, rate]) => `${pair} = ${rate}`)
             .join(', ')}
         </p>
+      )}
+
+      {/* AI insight requires auth + ownership on the backend, and the
+          only way a calculation with a non-null user_id ever reaches
+          this component is if it's already scoped to the current
+          viewer (HistoryView only ever loads from /calculations/mine;
+          the calculator's own fresh result is only ever tagged to
+          whoever is currently logged in) - no separate frontend-side
+          user-id comparison needed. Suppressed for embedded, read-only
+          per-offer views inside a Comparison (showActions=false) -
+          that comparison already gets its own, more relevant insight
+          covering all offers at once. */}
+      {showActions && calculation.user_id !== null && (
+        <AIInsightPanel target={{ calculationId: calculation.id }} />
       )}
 
       {showActions && (

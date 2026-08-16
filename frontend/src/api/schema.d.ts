@@ -233,10 +233,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/ai-insights': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Or Get Insight
+     * @description Auth is always required - like Phase 7's comparisons, AI insight
+     *     has no anonymous equivalent: it costs real money per call and needs
+     *     a real identity to attach accountability to.
+     *
+     *     Deliberately idempotent-safe despite being a POST: a repeated call
+     *     for the same target returns the same cached, already-passed result
+     *     rather than generating (and re-billing) again - see
+     *     get_or_generate_insight's own caching logic. 200, not 201, for this
+     *     reason - a cache hit genuinely isn't "creating" anything, and the
+     *     caller shouldn't need to care which happened.
+     */
+    post: operations['create_or_get_insight_api_v1_ai_insights_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AIInsightCreate */
+    AIInsightCreate: {
+      /** Calculation Id */
+      calculation_id?: number | null;
+      /** Comparison Id */
+      comparison_id?: number | null;
+    };
+    /** AIInsightOut */
+    AIInsightOut: {
+      /** Id */
+      id: number;
+      /** Request Id */
+      request_id: number;
+      /** Calculation Id */
+      calculation_id: number | null;
+      /** Comparison Id */
+      comparison_id: number | null;
+      /** Provider */
+      provider: string;
+      /** Model */
+      model: string;
+      /** Generated Text */
+      generated_text: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Cached */
+      cached: boolean;
+    };
     /** AccessTokenOut */
     AccessTokenOut: {
       /** Access Token */
@@ -930,6 +990,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ComparisonDetailOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_or_get_insight_api_v1_ai_insights_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AIInsightCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIInsightOut'];
         };
       };
       /** @description Validation Error */

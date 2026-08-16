@@ -1,4 +1,5 @@
 import type { ComparisonDetailOut } from '../../api/client';
+import { AIInsightPanel } from '../ai/AIInsightPanel';
 import { ResultsView } from '../calculator/ResultsView';
 import { formatCurrency } from '../calculator/format';
 import { gapMetricLabel, GAP_METRIC_ORDER } from './labels';
@@ -121,6 +122,14 @@ export function ComparisonResultView({ comparison, onBack }: ComparisonResultVie
           </div>
         );
       })}
+
+      {/* Comparisons always require auth + ownership to create (Phase
+          7), and this view only ever renders a comparison the current
+          user already owns - no extra gating needed here, unlike the
+          per-offer ResultsView below (which suppresses its own AI
+          insight panel, since this one already covers all the offers
+          together, the more useful framing for a comparison). */}
+      <AIInsightPanel target={{ comparisonId: comparison.id }} />
 
       <h3>Per-offer detail</h3>
       {comparison.calculations.map((calculation, index) => (

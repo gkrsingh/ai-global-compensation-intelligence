@@ -117,6 +117,16 @@ describe('ComparisonResultView', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
+  it('shows an AI insight panel for the comparison as a whole, but not a second one per offer', () => {
+    render(<ComparisonResultView comparison={COMPARISON} onBack={vi.fn()} />);
+
+    // Exactly one "Generate AI insight" button - the comparison's own,
+    // not a duplicate per embedded per-offer ResultsView (each of those
+    // suppresses its own via showActions=false, tested directly in
+    // ResultsView.test.tsx).
+    expect(screen.getAllByRole('button', { name: 'Generate AI insight' })).toHaveLength(1);
+  });
+
   it('shows an honest note instead of a gap ranking when a metric is unavailable for every offer', () => {
     const comparisonWithoutNet: ComparisonDetailOut = {
       ...COMPARISON,

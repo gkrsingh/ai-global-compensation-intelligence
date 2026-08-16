@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 import type {
   AccessTokenOut,
+  AIInsightOut,
   CalculationOut,
   ComparisonDetailOut,
   Country,
@@ -35,6 +36,7 @@ interface FetchStubs {
   // GET /comparisons/{id} needs to return different bodies per id, unlike
   // the other stubs which only ever need one canned response.
   getComparison?: Record<string, ComparisonDetailOut | ErrorResponse>;
+  createAIInsight?: AIInsightOut | ErrorResponse;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
@@ -112,6 +114,10 @@ export function stubFetch(stubs: FetchStubs) {
     if (comparisonDetailMatch && method === 'GET') {
       const body = stubs.getComparison?.[comparisonDetailMatch[1]];
       return respondFrom(body, 200);
+    }
+
+    if (url.endsWith('/ai-insights') && method === 'POST') {
+      return respondFrom(stubs.createAIInsight, 200);
     }
 
     if (url.endsWith('/auth/register')) {
