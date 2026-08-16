@@ -45,13 +45,33 @@ _CURRENCY_SYMBOLS = "$€₹£"
 # style grouping) isn't validated as "properly" grouped, just stripped
 # of commas and parsed as whatever digits remain; malformed grouping is
 # not this checker's concern.
-_NUMBER_TOKEN = re.compile(r"-?\d[\d,]*\.?\d*")
+#
+# Two things this pattern deliberately guards against, both found via a
+# real Gemini response during Phase 8's own E2E verification (the model
+# legitimately restated the prompt's "As of date: 2026-08-16" in its
+# prose, which is exactly what it's supposed to do) rather than assumed
+# upfront:
+#   (?<!\d) - a "-" is only treated as a negative sign when NOT
+#   immediately preceded by another digit. Without this, the date
+#   "2026-08-16" tokenizes as "2026", then "-08" and "-16" - the day and
+#   month get misread as negative numbers, because a hyphen used as a
+#   date separator is indistinguishable from a minus sign otherwise.
+#   (?:\.\d+)? - a decimal point only counts as part of the number if at
+#   least one digit follows it. Without this, "...as of 2026-08-16."
+#   (period ending the sentence) lets the trailing "." get absorbed into
+#   the token as "16.", which then looks like it "contains a decimal
+#   point" to _looks_like_money_or_percent below and gets wrongly
+#   flagged as money-shaped - a real false positive that failed a
+#   genuinely correct, fully-grounded response.
+_NUMBER_TOKEN = re.compile(r"(?<!\d)-?\d[\d,]*(?:\.\d+)?")
 
 # "150K", "1.5M", "2B" - a number immediately followed by a scale letter.
 # Matched and expanded separately from _NUMBER_TOKEN so a value like
 # "200K" is checked against its real 200000 magnitude, not silently
-# ignored as a bare, non-money-shaped "200".
-_ABBREVIATED_NUMBER = re.compile(r"-?(\d[\d,]*\.?\d*)\s?([KkMmBb])\b")
+# ignored as a bare, non-money-shaped "200". Same (?<!\d)/(?:\.\d+)?
+# reasoning as _NUMBER_TOKEN above, applied here for the same robustness
+# even though no realistic K/M/B-suffixed date could trigger it.
+_ABBREVIATED_NUMBER = re.compile(r"(?<!\d)-?(\d[\d,]*(?:\.\d+)?)\s?([KkMmBb])\b")
 _ABBREVIATION_MULTIPLIERS: dict[str, Decimal] = {
     "k": Decimal(1_000),
     "m": Decimal(1_000_000),

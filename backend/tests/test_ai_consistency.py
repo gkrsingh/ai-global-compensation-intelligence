@@ -62,6 +62,22 @@ class TestExtractNumbers:
         assert extract_numbers("There are 5 components across 3 brackets.") == set()
         assert extract_numbers("This is the 2nd bracket.") == set()
 
+    def test_a_date_restated_in_prose_is_never_mistaken_for_a_negative_number(self) -> None:
+        """A real bug, caught by Phase 8's own real Gemini E2E
+        verification, not invented: the model legitimately restated the
+        prompt's "As of date: 2026-08-16" in its prose (exactly what
+        it's supposed to do), and the checker wrongly flagged "-16" as
+        an unmatched fabricated number - failing a genuinely correct,
+        fully-grounded response. Root cause was two-fold: a hyphen used
+        as a date separator is indistinguishable from a minus sign
+        unless the token requires NOT being preceded by another digit,
+        and a bare decimal point with no digits after it (the period
+        ending the sentence, "...2026-08-16.") was being absorbed into
+        the token, making a plain integer look decimal-shaped.
+        """
+        text = "with a target currency of USD as of 2026-08-16. From your gross"
+        assert extract_numbers(text) == set()
+
     def test_comma_grouping_and_currency_symbols_normalize_to_the_same_value_as_the_bare_form(
         self,
     ) -> None:
@@ -291,3 +307,52 @@ class TestConsistencyAgainstARealRenderedPrompt:
 
         assert result.passed is False
         assert result.unmatched_numbers == ["130000.00"]
+
+    def test_a_response_that_restates_the_as_of_date_is_not_wrongly_flagged(
+        self, db_session: Session
+    ) -> None:
+        """The real bug this checker had until Phase 8's own E2E
+        verification against a live Gemini call caught it: a genuinely
+        correct, fully-grounded response was rejected because it
+        restated the DATA section's "As of date" in prose and the old
+        regex mistook the date's day component for a negative number.
+        generated_text below is the actual text captured from that real
+        API call (US $120,000 single filer), not a synthetic example.
+        """
+        us = db_session.scalar(select(Country).where(Country.code == "US"))
+        usd = db_session.scalar(select(Currency).where(Currency.code == "USD"))
+        assert us is not None and usd is not None
+
+        comp_input = CompensationInput(
+            country_id=us.id,
+            target_currency_id=usd.id,
+            filing_status="single",
+            as_of_date=date(2026, 8, 16),
+        )
+        comp_input.components.append(
+            CompensationComponent(
+                component_type=ComponentType.BASE, amount=Decimal("120000.00"), currency_id=usd.id
+            )
+        )
+        db_session.add(comp_input)
+        db_session.flush()
+        calculation = run_calculation(db_session, comp_input)
+        db_session.flush()
+
+        user_prompt = render_calculation_prompt(build_calculation_context(calculation))
+        generated_text = (
+            "This compensation offer provides a gross compensation and base salary of "
+            "120000.00 USD in the United States, with a target currency of USD as of "
+            "2026-08-16. From your gross amount, a total tax of 26750.00 USD is deducted, "
+            "which is comprised of an income tax of 17570.00 USD, social security of "
+            "7440.00 USD, medicare of 1740.00 USD, and a medicare additional surtax of "
+            "0.00 USD, while accounting for a standard deduction of 16100.00 USD. In "
+            "practice, this results in an effective tax rate of 22.29% and leaves you with "
+            "a net compensation after tax of 93250.00 USD, meaning your take-home "
+            "percentage of gross is 77.71%."
+        )
+
+        result = check_numeric_consistency(user_prompt=user_prompt, generated_text=generated_text)
+
+        assert result.passed is True
+        assert result.unmatched_numbers == []
