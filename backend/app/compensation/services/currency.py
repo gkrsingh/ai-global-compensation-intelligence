@@ -3,9 +3,9 @@
 No database or network access anywhere in this module, by design (see the
 Phase 3 hard constraints): rates are handed in as plain data, already
 loaded by a caller. This makes the actual math trivially unit-testable
-with fixed/fake rates and, longer-term, keeps it reusable regardless of
-where rates eventually come from (Phase 2's illustrative seed data now,
-a real rate-fetching integration later).
+with fixed/fake rates, and kept this module completely unchanged when
+Phase 6 replaced the caller's rate source (Phase 2's illustrative seed
+data) with a real, scheduled provider fetch.
 """
 
 from decimal import Decimal

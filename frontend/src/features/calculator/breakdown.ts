@@ -34,6 +34,12 @@ export interface TaxComponentBreakdown {
 export interface TaxBreakdown {
   rule_set_id: number;
   rule_set_name: string;
+  // The tax rule set's own currency (e.g. INR for India) - can differ
+  // from CalculationBreakdown.target_currency when the caller asks to
+  // see totals in a different currency than the tax law is denominated
+  // in. standard_deduction/taxable_base/bracket amounts below are all in
+  // THIS currency, never target_currency.
+  currency: string;
   standard_deduction: string | null;
   components: TaxComponentBreakdown[];
 }

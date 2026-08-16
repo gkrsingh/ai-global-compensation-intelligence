@@ -41,7 +41,7 @@ export function friendlyErrorLines(error: ApiError): string[] {
     case 'missing_exchange_rate':
       return [
         error.message,
-        'This project only has a couple of illustrative exchange rates seeded (USD/INR and USD/EUR), so most cross-currency combinations will legitimately fail right now - try USD as either a component currency or the target currency.',
+        'This project currently tracks real exchange rates for USD, INR, and EUR only (fetched on a schedule from a live provider), so a currency outside that set will legitimately fail here.',
       ];
     case 'ambiguous_tax_rule_set':
       return [

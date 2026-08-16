@@ -4,12 +4,12 @@ import { ApiError } from './client';
 import { friendlyErrorLines } from './errors';
 
 describe('friendlyErrorLines', () => {
-  it('adds the illustrative-rates note for missing_exchange_rate', () => {
+  it('adds the tracked-currencies note for missing_exchange_rate', () => {
     const lines = friendlyErrorLines(
-      new ApiError('missing_exchange_rate', 'No exchange rate available for INR -> EUR', null),
+      new ApiError('missing_exchange_rate', 'No exchange rate available for INR -> GBP', null),
     );
-    expect(lines[0]).toBe('No exchange rate available for INR -> EUR');
-    expect(lines[1]).toMatch(/illustrative exchange rates seeded/);
+    expect(lines[0]).toBe('No exchange rate available for INR -> GBP');
+    expect(lines[1]).toMatch(/USD, INR, and EUR only/);
   });
 
   it('gives a plain-language nudge for ambiguous_tax_rule_set', () => {

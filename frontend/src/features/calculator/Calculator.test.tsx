@@ -65,7 +65,7 @@ describe('Calculator', () => {
     expect(grossDt.nextElementSibling?.textContent).toBe('€50,000.00');
   });
 
-  it('shows the honest illustrative-rates note for a missing_exchange_rate error, without losing the form', async () => {
+  it('shows the honest tracked-currencies note for a missing_exchange_rate error, without losing the form', async () => {
     stubFetch({
       countries: COUNTRIES,
       calculation: {
@@ -73,7 +73,7 @@ describe('Calculator', () => {
         body: {
           error: {
             code: 'missing_exchange_rate',
-            message: 'No exchange rate available for INR -> EUR',
+            message: 'No exchange rate available for INR -> GBP',
             details: null,
           },
         },
@@ -84,11 +84,9 @@ describe('Calculator', () => {
     await fillAndSubmit();
 
     expect(
-      await screen.findByText('No exchange rate available for INR -> EUR'),
+      await screen.findByText('No exchange rate available for INR -> GBP'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/only has a couple of illustrative exchange rates seeded/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/USD, INR, and EUR only/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Calculate' })).toBeInTheDocument();
   });
 

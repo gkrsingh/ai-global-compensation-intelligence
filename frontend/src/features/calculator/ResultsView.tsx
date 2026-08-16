@@ -84,46 +84,64 @@ export function ResultsView({ calculation, onReset }: ResultsViewProps) {
       {breakdown?.tax && breakdown.tax.components.length > 0 && (
         <>
           <h3>Tax breakdown</h3>
-          {breakdown.tax.standard_deduction !== null && (
-            <p>
-              Standard deduction applied to income tax:{' '}
-              {formatCurrency(breakdown.tax.standard_deduction, currency)}
-            </p>
-          )}
-          {breakdown.tax.components.map((taxComponent) => (
-            <div key={taxComponent.component}>
-              <h4>
-                {taxComponentLabel(taxComponent.component)} —{' '}
-                {formatCurrency(taxComponent.total_tax, currency)}
-              </h4>
-              <p>Taxable base: {formatCurrency(taxComponent.taxable_base, currency)}</p>
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Bracket</th>
-                    <th scope="col">Rate</th>
-                    <th scope="col">Taxable amount</th>
-                    <th scope="col">Tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {taxComponent.brackets.map((bracket, index) => (
-                    <tr key={index}>
-                      <td>
-                        {formatCurrency(bracket.lower_bound, currency)} –{' '}
-                        {bracket.upper_bound === null
-                          ? '∞'
-                          : formatCurrency(bracket.upper_bound, currency)}
-                      </td>
-                      <td>{formatRate(bracket.rate)}</td>
-                      <td>{formatCurrency(bracket.taxable_amount, currency)}</td>
-                      <td>{formatCurrency(bracket.tax_amount, currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+          {/* The tax law's own currency (e.g. India's brackets are INR),
+              which can differ from `currency` (target_currency) above when
+              the caller asks to see totals in a different currency than
+              the tax law is denominated in - the figures below must use
+              this one, not the outer target currency. */}
+          {(() => {
+            const taxCurrency = breakdown.tax.currency;
+            return (
+              <>
+                {taxCurrency !== currency && (
+                  <p>
+                    Tax figures below are shown in {taxCurrency}, the currency this tax law is
+                    denominated in, not {currency}.
+                  </p>
+                )}
+                {breakdown.tax.standard_deduction !== null && (
+                  <p>
+                    Standard deduction applied to income tax:{' '}
+                    {formatCurrency(breakdown.tax.standard_deduction, taxCurrency)}
+                  </p>
+                )}
+                {breakdown.tax.components.map((taxComponent) => (
+                  <div key={taxComponent.component}>
+                    <h4>
+                      {taxComponentLabel(taxComponent.component)} —{' '}
+                      {formatCurrency(taxComponent.total_tax, taxCurrency)}
+                    </h4>
+                    <p>Taxable base: {formatCurrency(taxComponent.taxable_base, taxCurrency)}</p>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th scope="col">Bracket</th>
+                          <th scope="col">Rate</th>
+                          <th scope="col">Taxable amount</th>
+                          <th scope="col">Tax</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {taxComponent.brackets.map((bracket, index) => (
+                          <tr key={index}>
+                            <td>
+                              {formatCurrency(bracket.lower_bound, taxCurrency)} –{' '}
+                              {bracket.upper_bound === null
+                                ? '∞'
+                                : formatCurrency(bracket.upper_bound, taxCurrency)}
+                            </td>
+                            <td>{formatRate(bracket.rate)}</td>
+                            <td>{formatCurrency(bracket.taxable_amount, taxCurrency)}</td>
+                            <td>{formatCurrency(bracket.tax_amount, taxCurrency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </>
+            );
+          })()}
         </>
       )}
 

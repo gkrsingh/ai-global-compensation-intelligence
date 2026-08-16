@@ -263,6 +263,65 @@ def test_multi_currency_components_use_a_fixtured_exchange_rate(db_session: Sess
     assert "USD->INR" in calculation.breakdown["rates_used"]
 
 
+def test_tax_evaluated_in_tax_currency_not_target_currency(db_session: Session) -> None:
+    """India Rs15,00,000 base, new regime, normalized to EUR - the exact
+    cross-currency-to-a-different-tax-currency case that was unreachable
+    before Phase 6 (no real INR<->EUR rate previously existed) and that
+    exposed the tax-basis unit-mismatch bug: tax brackets must be
+    evaluated against the INR gross, not the EUR-converted gross, then
+    only the resulting tax total gets converted to EUR.
+
+    Uses a round, clearly-fixtured INR->EUR rate (0.01, i.e. 100 INR = 1
+    EUR) rather than the real persisted derived rate, so the hand math
+    stays simple and independent of whatever the live provider returns.
+
+    Hand math:
+      INR tax basis = 1500000.00 (target currency EUR plays no part here)
+      total_tax_in_INR = 93750.00 (same bracket math as the
+        same-currency India test above - the tax law doesn't care what
+        currency the caller wants to see the result in)
+      total_tax_amount (EUR) = 93750.00 * 0.01 = 937.50
+      gross_amount (EUR) = 1500000.00 * 0.01 = 15000.00
+      net_amount = 15000.00 - 937.50 = 14062.50
+    """
+    india = _country(db_session, "IN")
+    inr = _currency(db_session, "INR")
+    eur = _currency(db_session, "EUR")
+    today = date.today()
+    db_session.add(
+        ExchangeRate(
+            base_currency_id=inr.id,
+            quote_currency_id=eur.id,
+            rate=Decimal("0.01000000"),
+            as_of_date=today,
+            source="test-fixture",
+        )
+    )
+    db_session.flush()
+
+    comp_input = CompensationInput(
+        country_id=india.id,
+        target_currency_id=eur.id,
+        regime="new",
+        as_of_date=today,
+    )
+    comp_input.components.append(_component(ComponentType.BASE, "1500000.00", inr))
+    db_session.add(comp_input)
+    db_session.flush()
+
+    calculation = run_calculation(db_session, comp_input)
+
+    assert calculation.gross_amount == Decimal("15000.00")
+    assert calculation.total_tax_amount == Decimal("937.50")
+    assert calculation.net_amount == Decimal("14062.50")
+    assert calculation.breakdown["tax"]["currency"] == "INR"
+    income_tax = next(
+        c for c in calculation.breakdown["tax"]["components"] if c["component"] == "income_tax"
+    )
+    assert income_tax["taxable_base"] == "1425000.00"
+    assert income_tax["total_tax"] == "93750.00"
+
+
 def test_missing_exchange_rate_propagates_not_swallowed(db_session: Session) -> None:
     """India-sourced income normalized to EUR: no INR-EUR rate (direct or
     inverse) exists, and the engine must not silently guess via a third

@@ -31,6 +31,7 @@ const US_CALCULATION: CalculationOut = {
     tax: {
       rule_set_id: 2,
       rule_set_name: 'US Federal Income Tax — Single Filer (TY2026)',
+      currency: 'USD',
       standard_deduction: '16100.00',
       components: [
         {
@@ -103,6 +104,58 @@ const NO_TAX_RULE_SET_CALCULATION: CalculationOut = {
   created_at: '2026-08-15T13:08:16.326507Z',
 };
 
+const INDIA_TO_EUR_CALCULATION: CalculationOut = {
+  id: 4,
+  compensation_input_id: 6,
+  user_id: null,
+  engine_version: '1.0.0',
+  gross_amount: '15000.00',
+  total_compensation_amount: '15000.00',
+  tax_rule_set_id: 5,
+  total_tax_amount: '937.50',
+  net_amount: '14062.50',
+  breakdown: {
+    target_currency: 'EUR',
+    as_of_date: '2026-08-15',
+    rates_used: { 'INR->EUR': '0.01000000' },
+    components: [
+      {
+        type: 'base',
+        description: null,
+        original_amount: '1500000.00',
+        original_currency: 'INR',
+        converted_amount: '15000.00',
+        counts_toward_gross: true,
+      },
+    ],
+    // The tax law's own currency (INR) differs from target_currency (EUR)
+    // - the scenario the Phase 6 tax-currency-mismatch fix exists for.
+    tax: {
+      rule_set_id: 5,
+      rule_set_name: 'India New Regime Income Tax (FY2026-27)',
+      currency: 'INR',
+      standard_deduction: '75000.00',
+      components: [
+        {
+          component: 'income_tax',
+          taxable_base: '1425000.00',
+          total_tax: '93750.00',
+          brackets: [
+            {
+              lower_bound: '400000.00',
+              upper_bound: '800000.00',
+              rate: '0.05000',
+              taxable_amount: '400000.00',
+              tax_amount: '20000.00',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  created_at: '2026-08-15T13:08:16.326507Z',
+};
+
 describe('ResultsView', () => {
   it('renders the gross/total/tax/net summary with unambiguous labels', () => {
     render(<ResultsView calculation={US_CALCULATION} onReset={vi.fn()} />);
@@ -151,6 +204,21 @@ describe('ResultsView', () => {
     // The figures that don't depend on tax are still shown and accurate.
     const grossDt = screen.getByText('Gross compensation (cash only, before tax)');
     expect(grossDt.nextElementSibling?.textContent).toBe('€50,000.00');
+  });
+
+  it('shows tax breakdown figures in the tax law\'s own currency, not target_currency, when they differ', () => {
+    render(<ResultsView calculation={INDIA_TO_EUR_CALCULATION} onReset={vi.fn()} />);
+
+    // Top-level summary figures use target_currency (EUR).
+    const grossDt = screen.getByText('Gross compensation (cash only, before tax)');
+    expect(grossDt.nextElementSibling?.textContent).toBe('€15,000.00');
+    const taxDt = screen.getByText('Total tax');
+    expect(taxDt.nextElementSibling?.textContent).toBe('€937.50');
+
+    // Tax breakdown figures use the tax law's own currency (INR), not EUR.
+    expect(screen.getByText(/Tax figures below are shown in INR/)).toBeInTheDocument();
+    expect(screen.getByText(/₹93,750\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Taxable base/).textContent).toContain('₹1,425,000.00');
   });
 
   it('calls onReset when "New calculation" is clicked', () => {
