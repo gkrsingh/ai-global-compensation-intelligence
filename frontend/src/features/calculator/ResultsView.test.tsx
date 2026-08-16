@@ -206,7 +206,7 @@ describe('ResultsView', () => {
     expect(grossDt.nextElementSibling?.textContent).toBe('€50,000.00');
   });
 
-  it('shows tax breakdown figures in the tax law\'s own currency, not target_currency, when they differ', () => {
+  it("shows tax breakdown figures in the tax law's own currency, not target_currency, when they differ", () => {
     render(<ResultsView calculation={INDIA_TO_EUR_CALCULATION} onReset={vi.fn()} />);
 
     // Top-level summary figures use target_currency (EUR).
