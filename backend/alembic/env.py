@@ -3,6 +3,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.ai import models as ai_models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
 from app.comparison import models as comparison_models  # noqa: F401
 from app.compensation import models as compensation_models  # noqa: F401
@@ -10,7 +11,7 @@ from app.core.config import settings
 from app.db.base import Base
 from app.reference_data import models as reference_data_models  # noqa: F401
 
-# The four "models as ..._models" imports above exist purely so every
+# The five "models as ..._models" imports above exist purely so every
 # domain's tables register with Base's metadata before autogenerate runs.
 # db/base.py deliberately does not import these itself: compensation
 # depends on reference_data, which is what triggers db.base's own import
