@@ -32,6 +32,22 @@ from app.main import app  # noqa: E402
 from app.reference_data.seed import seed_all  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """app is a single module-level instance imported once for the whole
+    test session (see the `client` fixture below), so slowapi's in-memory
+    hit counters (app/core/rate_limit.py) would otherwise accumulate
+    across every test that touches a rate-limited route - a test file
+    with more login/register calls than the real per-minute limit would
+    start failing on unrelated assertions, not the rate limiting itself.
+    Resetting before every test keeps each test's view of the limiter
+    empty, while still letting a dedicated test intentionally exceed a
+    limit within its own function body to prove the 429 path fires for
+    real (see test_auth_api.py/test_ai_api.py's own rate-limit tests).
+    """
+    app.state.limiter.reset()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _seed_reference_data() -> None:
     """Ensure reference/taxonomy data exists before any test runs.
