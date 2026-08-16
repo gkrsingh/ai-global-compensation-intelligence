@@ -63,3 +63,29 @@ def find_rate_either_direction(
         return currency_b, currency_a, rate.rate
 
     return None
+
+
+def build_rates(
+    session: Session, from_currencies: set[str], to_currency: str, as_of: date
+) -> dict[tuple[str, str], Decimal]:
+    """A rates dict (keyed the same way convert_amount expects) covering
+    every currency in `from_currencies` that has a real path to
+    `to_currency`. Currencies with no available rate are simply absent -
+    callers find out via convert_amount's MissingExchangeRateError at the
+    point they actually need that specific pair, not here.
+
+    Originally private to the calculation engine (Phase 3-6); promoted
+    here once Phase 7's comparison feature became a second real caller
+    needing the identical "rates dict for a set of source currencies -> one
+    target" logic - same extract-on-second-use discipline as upsert() in
+    app/reference_data/upsert.py.
+    """
+    rates: dict[tuple[str, str], Decimal] = {}
+    for currency_code in from_currencies:
+        if currency_code == to_currency:
+            continue
+        found = find_rate_either_direction(session, currency_code, to_currency, as_of)
+        if found is not None:
+            base, quote, rate = found
+            rates[(base, quote)] = rate
+    return rates

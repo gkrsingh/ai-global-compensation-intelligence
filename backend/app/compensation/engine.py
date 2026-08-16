@@ -31,14 +31,13 @@ Three modeling decisions, confirmed explicitly rather than left implicit:
 """
 
 from collections import defaultdict
-from datetime import date
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.compensation.models import Calculation, CompensationInput
-from app.compensation.repositories import find_rate_either_direction
+from app.compensation.repositories import build_rates
 from app.compensation.services.currency import convert_amount
 from app.compensation.services.tax import BracketDefinition, calculate_progressive_tax
 from app.compensation.services.totals import (
@@ -54,20 +53,6 @@ ENGINE_VERSION = "1.0.0"
 _INCOME_TAX_COMPONENTS = frozenset({TaxComponent.INCOME_TAX})
 
 
-def _build_rates(
-    session: Session, from_currencies: set[str], to_currency: str, as_of: date
-) -> dict[tuple[str, str], Decimal]:
-    rates: dict[tuple[str, str], Decimal] = {}
-    for currency_code in from_currencies:
-        if currency_code == to_currency:
-            continue
-        found = find_rate_either_direction(session, currency_code, to_currency, as_of)
-        if found is not None:
-            base, quote, rate = found
-            rates[(base, quote)] = rate
-    return rates
-
-
 def run_calculation(session: Session, compensation_input: CompensationInput) -> Calculation:
     """Run the engine for an already-persisted CompensationInput.
 
@@ -79,7 +64,7 @@ def run_calculation(session: Session, compensation_input: CompensationInput) -> 
     as_of = compensation_input.as_of_date
 
     component_currencies = {c.currency.code for c in compensation_input.components}
-    rates = _build_rates(session, component_currencies, target_currency, as_of)
+    rates = build_rates(session, component_currencies, target_currency, as_of)
 
     component_amounts = [
         ComponentAmount(
@@ -126,8 +111,8 @@ def run_calculation(session: Session, compensation_input: CompensationInput) -> 
         if tax_currency == target_currency:
             tax_basis_gross = totals.gross_amount
         else:
-            rates.update(_build_rates(session, component_currencies, tax_currency, as_of))
-            rates.update(_build_rates(session, {tax_currency}, target_currency, as_of))
+            rates.update(build_rates(session, component_currencies, tax_currency, as_of))
+            rates.update(build_rates(session, {tax_currency}, target_currency, as_of))
             tax_basis_gross = calculate_compensation_totals(
                 component_amounts, tax_currency, rates
             ).gross_amount
