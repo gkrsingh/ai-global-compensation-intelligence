@@ -49,6 +49,11 @@ def _message_response(
     )
 
 
+def test_name_is_anthropic() -> None:
+    provider = AnthropicProvider(api_key="test-key", model="claude-sonnet-5")
+    assert provider.name == "anthropic"
+
+
 def test_generate_parses_a_successful_response_and_sends_the_expected_request() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/messages"

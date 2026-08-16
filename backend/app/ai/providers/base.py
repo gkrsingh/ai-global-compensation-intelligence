@@ -38,6 +38,14 @@ class AIProviderError(Exception):
 
 
 class AIProvider(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """A short, stable identifier for this provider (e.g.
+        "anthropic"), persisted as AIAnalysisResult.provider - part of
+        the audit trail, distinct from `model` (which model, on this
+        provider, actually generated the text)."""
+
     @abstractmethod
     def generate(self, *, system_prompt: str, user_prompt: str) -> GeneratedText:
         """One single-turn request: a system prompt (the persona/

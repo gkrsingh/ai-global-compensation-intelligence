@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.ai.api import router as ai_router
 from app.api.v1.health import router as health_router
 from app.auth.api import router as auth_router
 from app.comparison.api import router as comparison_router
@@ -38,3 +39,4 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(reference_data_router, prefix="/api/v1")
 app.include_router(compensation_router, prefix="/api/v1")
 app.include_router(comparison_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")

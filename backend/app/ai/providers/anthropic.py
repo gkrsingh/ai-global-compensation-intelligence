@@ -33,6 +33,10 @@ class AnthropicProvider(AIProvider):
         self._max_tokens = max_tokens
         self._client = anthropic.Anthropic(api_key=api_key, http_client=http_client)
 
+    @property
+    def name(self) -> str:
+        return "anthropic"
+
     def generate(self, *, system_prompt: str, user_prompt: str) -> GeneratedText:
         try:
             response = self._client.messages.create(
