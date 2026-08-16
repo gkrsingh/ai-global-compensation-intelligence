@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
+    # Unlike jwt_secret_key/database_url, deliberately optional with no
+    # fail-fast: AI insight is a narrow, gateable feature layered on top
+    # of an app that's fully functional without it (every other endpoint,
+    # and the automated test suite, must keep working with this unset -
+    # CI never provisions a real key, since tests mock the provider and
+    # must never make a live call). Only the AI code path itself needs to
+    # check for its presence and fail explicitly there if it's missing.
+    anthropic_api_key: str | None = None
+    ai_model: str = "claude-sonnet-5"
+
     @field_validator("backend_cors_origins", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:
