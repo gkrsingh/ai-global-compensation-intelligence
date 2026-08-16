@@ -3,8 +3,10 @@ import { vi } from 'vitest';
 import type {
   AccessTokenOut,
   CalculationOut,
+  ComparisonDetailOut,
   Country,
   PaginatedCalculationsOut,
+  PaginatedComparisonsOut,
   TaxRuleSet,
   TokenPairOut,
   UserOut,
@@ -27,6 +29,12 @@ interface FetchStubs {
   refresh?: AccessTokenOut | ErrorResponse;
   logout?: ErrorResponse; // success is always a bare 204, nothing to configure
   myCalculations?: PaginatedCalculationsOut | ErrorResponse;
+  myComparisons?: PaginatedComparisonsOut | ErrorResponse;
+  createComparison?: ComparisonDetailOut | ErrorResponse;
+  // Keyed by comparison id (as a string, matching the URL segment) since
+  // GET /comparisons/{id} needs to return different bodies per id, unlike
+  // the other stubs which only ever need one canned response.
+  getComparison?: Record<string, ComparisonDetailOut | ErrorResponse>;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
@@ -90,6 +98,20 @@ export function stubFetch(stubs: FetchStubs) {
         ? { 'X-Auth-Warning': stubs.calculationAuthWarning }
         : {};
       return respondFrom(stubs.calculation, 201, headers);
+    }
+
+    if (url.includes('/comparisons/mine')) {
+      return respondFrom(stubs.myComparisons ?? { items: [], total: 0, limit: 20, offset: 0 }, 200);
+    }
+
+    if (url.endsWith('/comparisons') && method === 'POST') {
+      return respondFrom(stubs.createComparison, 201);
+    }
+
+    const comparisonDetailMatch = /\/comparisons\/(\d+)$/.exec(url);
+    if (comparisonDetailMatch && method === 'GET') {
+      const body = stubs.getComparison?.[comparisonDetailMatch[1]];
+      return respondFrom(body, 200);
     }
 
     if (url.endsWith('/auth/register')) {

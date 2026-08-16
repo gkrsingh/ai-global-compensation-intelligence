@@ -6,9 +6,20 @@ import { componentTypeLabel, taxComponentLabel } from './labels';
 export interface ResultsViewProps {
   calculation: CalculationOut;
   onReset: () => void;
+  // Both default to the original standalone-calculator behavior -
+  // callers embedding this view read-only inside something else (e.g.
+  // one offer within a Comparison) override them rather than every
+  // existing caller needing to opt in.
+  heading?: string;
+  showActions?: boolean;
 }
 
-export function ResultsView({ calculation, onReset }: ResultsViewProps) {
+export function ResultsView({
+  calculation,
+  onReset,
+  heading = 'Result',
+  showActions = true,
+}: ResultsViewProps) {
   const breakdown = parseBreakdown(calculation.breakdown);
   // Falls back to the calculation's own target currency the breakdown is
   // meant to reflect, if the free-form breakdown didn't parse - all the
@@ -17,9 +28,9 @@ export function ResultsView({ calculation, onReset }: ResultsViewProps) {
 
   return (
     <section>
-      <h2>Result</h2>
+      <h2>{heading}</h2>
 
-      {calculation.user_id !== null && <p role="status">Saved to your history.</p>}
+      {showActions && calculation.user_id !== null && <p role="status">Saved to your history.</p>}
 
       <dl className="results-summary">
         <div>
@@ -154,9 +165,11 @@ export function ResultsView({ calculation, onReset }: ResultsViewProps) {
         </p>
       )}
 
-      <button type="button" onClick={onReset}>
-        New calculation
-      </button>
+      {showActions && (
+        <button type="button" onClick={onReset}>
+          New calculation
+        </button>
+      )}
     </section>
   );
 }

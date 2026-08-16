@@ -24,6 +24,13 @@ export type UserOut = components['schemas']['UserOut'];
 export type TokenPairOut = components['schemas']['TokenPairOut'];
 export type AccessTokenOut = components['schemas']['AccessTokenOut'];
 export type PaginatedCalculationsOut = components['schemas']['PaginatedCalculationsOut'];
+export type ComparisonCreate = components['schemas']['ComparisonCreate'];
+export type ComparisonDetailOut = components['schemas']['ComparisonDetailOut'];
+export type ComparisonEntryOut = components['schemas']['ComparisonEntryOut'];
+export type ComparisonSummaryOut = components['schemas']['ComparisonSummaryOut'];
+export type MetricGapAnalysisOut = components['schemas']['MetricGapAnalysisOut'];
+export type MetricGapEntryOut = components['schemas']['MetricGapEntryOut'];
+export type PaginatedComparisonsOut = components['schemas']['PaginatedComparisonsOut'];
 
 /**
  * The FastAPI-generated OpenAPI schema documents 422 responses as
@@ -174,4 +181,48 @@ export async function fetchMyCalculations(
     throw await parseErrorResponse(response);
   }
   return (await response.json()) as PaginatedCalculationsOut;
+}
+
+// All three comparison endpoints require auth - unlike POST
+// /calculations, there's no anonymous equivalent (a comparison
+// inherently operates on saved history). Callers are expected to only
+// reach these views while authenticated, so an absent access token is
+// sent as-is rather than special-cased - the backend's own 401
+// "not_authenticated" surfaces the same way any other auth failure would.
+function _authHeaders(): Record<string, string> {
+  const accessToken = getAccessToken();
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+}
+
+export async function createComparison(payload: ComparisonCreate): Promise<ComparisonDetailOut> {
+  const response = await fetch(`${API_BASE_URL}/comparisons`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as ComparisonDetailOut;
+}
+
+export async function fetchMyComparisons(
+  limit: number,
+  offset: number,
+): Promise<PaginatedComparisonsOut> {
+  const response = await fetch(`${API_BASE_URL}/comparisons/mine?limit=${limit}&offset=${offset}`, {
+    headers: _authHeaders(),
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as PaginatedComparisonsOut;
+}
+
+export async function fetchComparison(id: number): Promise<ComparisonDetailOut> {
+  const response = await fetch(`${API_BASE_URL}/comparisons/${id}`, { headers: _authHeaders() });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as ComparisonDetailOut;
 }

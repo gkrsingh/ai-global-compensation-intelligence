@@ -171,6 +171,68 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/comparisons': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Comparison
+     * @description Auth is always required - unlike POST /calculations, there is no
+     *     anonymous equivalent: a comparison inherently operates on saved
+     *     history, which anonymous use doesn't have.
+     */
+    post: operations['create_comparison_api_v1_comparisons_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comparisons/mine': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List My Comparisons */
+    get: operations['list_my_comparisons_api_v1_comparisons_mine_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comparisons/{comparison_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Comparison
+     * @description Scoped to the caller's own comparisons only - a comparison_id
+     *     belonging to another user returns the same 404 as one that doesn't
+     *     exist at all (see UnknownCalculationError's docstring for the same
+     *     enumeration-avoidance reasoning applied here at the read side).
+     */
+    get: operations['get_comparison_api_v1_comparisons__comparison_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -214,6 +276,82 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+    };
+    /** ComparisonCreate */
+    ComparisonCreate: {
+      /** Name */
+      name: string;
+      /** Comparison Currency Code */
+      comparison_currency_code: string;
+      /** Calculation Ids */
+      calculation_ids: number[];
+      /** As Of Date */
+      as_of_date?: string | null;
+    };
+    /** ComparisonDetailOut */
+    ComparisonDetailOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Comparison Currency */
+      comparison_currency: string;
+      /**
+       * As Of Date
+       * Format: date
+       */
+      as_of_date: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Entries */
+      entries: components['schemas']['ComparisonEntryOut'][];
+      /** Gap Analysis */
+      gap_analysis: {
+        [key: string]: components['schemas']['MetricGapAnalysisOut'] | null;
+      };
+      /** Calculations */
+      calculations: components['schemas']['CalculationOut'][];
+    };
+    /** ComparisonEntryOut */
+    ComparisonEntryOut: {
+      /** Calculation Id */
+      calculation_id: number;
+      /** Source Currency */
+      source_currency: string;
+      /** Rate Used */
+      rate_used: string | null;
+      /** Gross Amount */
+      gross_amount: string;
+      /** Total Compensation Amount */
+      total_compensation_amount: string;
+      /** Total Tax Amount */
+      total_tax_amount: string | null;
+      /** Net Amount */
+      net_amount: string | null;
+    };
+    /** ComparisonSummaryOut */
+    ComparisonSummaryOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Comparison Currency */
+      comparison_currency: string;
+      /**
+       * As Of Date
+       * Format: date
+       */
+      as_of_date: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Calculation Count */
+      calculation_count: number;
     };
     /** CompensationComponentIn */
     CompensationComponentIn: {
@@ -301,10 +439,37 @@ export interface components {
       /** Refresh Token */
       refresh_token: string;
     };
+    /** MetricGapAnalysisOut */
+    MetricGapAnalysisOut: {
+      /** Leader Calculation Id */
+      leader_calculation_id: number;
+      /** Entries */
+      entries: components['schemas']['MetricGapEntryOut'][];
+    };
+    /** MetricGapEntryOut */
+    MetricGapEntryOut: {
+      /** Calculation Id */
+      calculation_id: number;
+      /** Gap Absolute */
+      gap_absolute: string;
+      /** Gap Percent */
+      gap_percent: string | null;
+    };
     /** PaginatedCalculationsOut */
     PaginatedCalculationsOut: {
       /** Items */
       items: components['schemas']['CalculationOut'][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** PaginatedComparisonsOut */
+    PaginatedComparisonsOut: {
+      /** Items */
+      items: components['schemas']['ComparisonSummaryOut'][];
       /** Total */
       total: number;
       /** Limit */
@@ -669,6 +834,102 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PaginatedCalculationsOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_comparison_api_v1_comparisons_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComparisonCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComparisonDetailOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_my_comparisons_api_v1_comparisons_mine_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedComparisonsOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_comparison_api_v1_comparisons__comparison_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        comparison_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComparisonDetailOut'];
         };
       };
       /** @description Validation Error */
