@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.health import router as health_router
 from app.auth.api import router as auth_router
+from app.comparison.api import router as comparison_router
 from app.compensation.api import AUTH_WARNING_HEADER
 from app.compensation.api import router as compensation_router
 from app.core.config import settings
@@ -36,3 +37,4 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(reference_data_router, prefix="/api/v1")
 app.include_router(compensation_router, prefix="/api/v1")
+app.include_router(comparison_router, prefix="/api/v1")
