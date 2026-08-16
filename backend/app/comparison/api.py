@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from typing import Any
 
@@ -20,6 +21,8 @@ from app.compensation.services.currency import MissingExchangeRateError
 from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.reference_data.models import Currency
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -94,8 +97,22 @@ def create_comparison(
             payload.as_of_date or date.today(),
         )
     except UnknownCalculationError as exc:
+        # Not logged - same enumeration-avoidance reasoning as auth's
+        # invalid-token path (app/auth/dependencies.py): "referenced
+        # someone else's calculation, or a stale/typo'd id" is an
+        # ordinary, expected client-side condition already fully
+        # communicated via the 404, not an operational signal.
         raise _comparison_not_found() from exc
     except MissingExchangeRateError as exc:
+        # Unlike the case above, this IS worth a signal: it means the
+        # reference-data ingestion (app/reference_data/fetch_exchange_
+        # rates.py) is missing a rate a real user actually needed, not
+        # just a caller probing bad input - an operator should know this
+        # is happening, not just the one user who got a 422.
+        logger.warning(
+            "Comparison creation failed: missing exchange rate",
+            extra={"from_currency": exc.from_currency, "to_currency": exc.to_currency},
+        )
         raise AppError(
             f"No exchange rate available for {exc.from_currency} -> {exc.to_currency}",
             code="missing_exchange_rate",

@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query, Response, status
@@ -18,6 +19,8 @@ from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.reference_data.models import Country, Currency, EmploymentType, ExperienceLevel, JobFamily
 from app.reference_data.queries import AmbiguousTaxRuleSetError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -91,12 +94,23 @@ def create_calculation(
     try:
         calculation = run_calculation(db, comp_input)
     except MissingExchangeRateError as exc:
+        # Same reasoning as the identical catch in app/comparison/api.py:
+        # a real reference-data completeness gap, not just bad input -
+        # worth a signal an operator can act on.
+        logger.warning(
+            "Calculation failed: missing exchange rate",
+            extra={"from_currency": exc.from_currency, "to_currency": exc.to_currency},
+        )
         raise AppError(
             f"No exchange rate available for {exc.from_currency} -> {exc.to_currency}",
             code="missing_exchange_rate",
             status_code=422,
         ) from exc
     except AmbiguousTaxRuleSetError as exc:
+        # Also a reference-data quality gap (two tax rule sets both claim
+        # to apply for the same country/regime/date), not user error -
+        # same "worth a signal" reasoning as the exchange-rate case above.
+        logger.warning("Calculation failed: ambiguous tax rule set", extra={"detail": str(exc)})
         raise AppError(str(exc), code="ambiguous_tax_rule_set", status_code=422) from exc
 
     if auth.user is not None:
