@@ -1,11 +1,13 @@
 """Integration tests for POST /ai-insights - the full HTTP stack (auth ->
 ownership -> orchestration -> provider -> consistency check ->
 persistence -> response), same style as test_comparison_api.py. The
-Anthropic provider is swapped for a stub via FastAPI's own
-dependency_overrides (app.ai.api.get_ai_provider), so these exercise the
-real endpoint and orchestration code with zero risk of ever calling the
-real API - the same guarantee test_ai_provider.py's httpx.MockTransport
-gives at the adapter layer, applied here at the whole-request layer.
+active provider (Gemini or Anthropic, whichever AI_PROVIDER selects) is
+swapped for a stub via FastAPI's own dependency_overrides
+(app.ai.api.get_ai_provider), so these exercise the real endpoint and
+orchestration code with zero risk of ever calling a real provider API -
+the same guarantee test_ai_provider.py/test_ai_gemini_provider.py's
+httpx.MockTransport gives at the adapter layer, applied here at the
+whole-request layer.
 """
 
 from collections.abc import Generator
@@ -19,9 +21,11 @@ from app.ai.api import get_ai_provider
 from app.ai.models import AIAnalysisRequest, AIAnalysisResult
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import AIProvider, AIProviderError, GeneratedText
+from app.ai.providers.gemini import GeminiProvider
 from app.auth.models import User
 from app.compensation.models import Calculation
 from app.core.config import settings
+from app.core.exceptions import AppError
 from app.main import app
 
 
@@ -113,22 +117,51 @@ def _cleanup_user(db_session: Session, email: str) -> None:
         db_session.commit()
 
 
-def test_get_ai_provider_constructs_a_real_provider_when_configured(
+def test_get_ai_provider_constructs_gemini_by_default_when_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The successful branch of get_ai_provider() - never exercised by
-    any HTTP test above, since those either override the dependency or
-    rely on the (always-unset-in-test-env) real key being absent to
-    prove the 503 path. Merely constructing AnthropicProvider makes no
-    network call (only .generate() would), so this is safe to test
-    directly without touching the real API.
+    """The successful branch of get_ai_provider() for the default
+    provider - never exercised by any HTTP test above, since those
+    either override the dependency or rely on the (always-unset-in-
+    test-env) real key being absent to prove the 503 path. Merely
+    constructing GeminiProvider makes no network call (only .generate()
+    would), so this is safe to test directly without touching the real
+    API.
     """
+    monkeypatch.setattr(settings, "gemini_api_key", "fake-key-for-construction-only")
+
+    provider = get_ai_provider()
+
+    assert isinstance(provider, GeminiProvider)
+    assert provider.name == "gemini"
+
+
+def test_get_ai_provider_constructs_anthropic_when_switched(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proves AI_PROVIDER genuinely switches which concrete class gets
+    built, not just in theory - the whole point of keeping both
+    providers wired rather than deleting the one that isn't the
+    default.
+    """
+    monkeypatch.setattr(settings, "ai_provider", "anthropic")
     monkeypatch.setattr(settings, "anthropic_api_key", "fake-key-for-construction-only")
 
     provider = get_ai_provider()
 
     assert isinstance(provider, AnthropicProvider)
     assert provider.name == "anthropic"
+
+
+def test_get_ai_provider_fails_cleanly_for_an_unrecognized_provider_setting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "ai_provider", "not-a-real-provider")
+
+    with pytest.raises(AppError) as exc_info:
+        get_ai_provider()
+
+    assert exc_info.value.code == "ai_not_configured"
 
 
 def test_create_insight_returns_generated_text_and_persists(
@@ -334,9 +367,11 @@ def test_create_insight_returns_503_when_ai_is_not_configured(
     client: TestClient, db_session: Session
 ) -> None:
     """The REAL get_ai_provider dependency, not overridden - proves the
-    actual production code path (ANTHROPIC_API_KEY unset, which it
-    always is in this test environment) fails gracefully rather than
-    the whole app breaking.
+    actual production code path (GEMINI_API_KEY unset in this test
+    environment, per conftest.py's ENV_FILE redirect keeping .env's real
+    key from leaking into tests - see that file's own comment for the
+    real bug this closes) fails gracefully rather than the whole app
+    breaking.
     """
     email = "ai-api-7@example.com"
     token = _register_and_login(client, email)

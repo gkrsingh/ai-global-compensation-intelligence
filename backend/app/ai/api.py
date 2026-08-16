@@ -8,6 +8,7 @@ from app.ai.orchestration import (
 )
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import AIProvider, AIProviderError
+from app.ai.providers.gemini import GeminiProvider
 from app.ai.schemas import AIInsightCreate, AIInsightOut
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
@@ -18,21 +19,37 @@ from app.db.session import get_db
 router = APIRouter()
 
 
+def _unconfigured(reason: str) -> AppError:
+    return AppError(
+        f"AI insight is not configured on this server ({reason})",
+        code="ai_not_configured",
+        status_code=503,
+    )
+
+
 def get_ai_provider() -> AIProvider:
     """A FastAPI dependency (not a plain module-level call) specifically
     so tests can override it via app.dependency_overrides - the same
     pattern conftest.py's unreachable_db_client fixture already
     established for get_db. Lets API-level tests exercise the real
     endpoint and orchestration code against a stub provider, with zero
-    risk of ever making a live call to the real Anthropic API.
+    risk of ever making a live call to a real provider API.
+
+    Dispatches on settings.ai_provider - both concrete providers stay
+    fully wired here regardless of which one is active, so switching is
+    a one-line env var change, not a code change. Every branch below
+    still fails the same clean "not configured" way if its own key is
+    missing, matching the original single-provider behavior exactly.
     """
-    if settings.anthropic_api_key is None:
-        raise AppError(
-            "AI insight is not configured on this server",
-            code="ai_not_configured",
-            status_code=503,
-        )
-    return AnthropicProvider(api_key=settings.anthropic_api_key, model=settings.ai_model)
+    if settings.ai_provider == "gemini":
+        if settings.gemini_api_key is None:
+            raise _unconfigured("missing GEMINI_API_KEY")
+        return GeminiProvider(api_key=settings.gemini_api_key, model=settings.gemini_model)
+    if settings.ai_provider == "anthropic":
+        if settings.anthropic_api_key is None:
+            raise _unconfigured("missing ANTHROPIC_API_KEY")
+        return AnthropicProvider(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
+    raise _unconfigured(f"unknown AI_PROVIDER setting: {settings.ai_provider!r}")
 
 
 def _insight_target_not_found() -> AppError:

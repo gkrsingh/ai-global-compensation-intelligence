@@ -21,6 +21,7 @@ dependencies = [
     "email-validator>=2.2",
     "httpx>=0.27",
     "anthropic>=0.122",
+    "google-genai>=2.18",
 ]
 
 [project.optional-dependencies]

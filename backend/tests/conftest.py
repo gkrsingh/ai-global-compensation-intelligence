@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator
 from pathlib import Path
 
@@ -10,7 +11,21 @@ from sqlalchemy.orm import Session, sessionmaker
 # Must run before `app` is imported anywhere below: Settings is built at
 # import time, so DATABASE_URL has to point at compintel_test (not the .env
 # default of compintel_dev) before app.core.config ever loads.
-load_dotenv(Path(__file__).resolve().parent.parent / ".env.test", override=True)
+_ENV_TEST_PATH = Path(__file__).resolve().parent.parent / ".env.test"
+load_dotenv(_ENV_TEST_PATH, override=True)
+
+# load_dotenv only sets keys that .env.test actually defines - it can't
+# make a key "absent" for a field that IS defined in the real .env but
+# deliberately isn't in .env.test (e.g. GEMINI_API_KEY/ANTHROPIC_API_KEY,
+# expected to resolve to None in tests). Settings' own env_file fallback
+# (see app/core/config.py) would otherwise read the real .env directly
+# for exactly that gap - confirmed empirically: a test asserting the
+# "AI not configured" 503 path instead made a REAL Gemini API call,
+# because settings.gemini_api_key silently picked up the real key from
+# .env. ENV_FILE redirects that same fallback mechanism at .env.test
+# instead, closing the leak for this and any future optional setting,
+# not just the two AI keys.
+os.environ["ENV_FILE"] = str(_ENV_TEST_PATH)
 
 from app.db.session import SessionLocal, get_db  # noqa: E402
 from app.main import app  # noqa: E402
