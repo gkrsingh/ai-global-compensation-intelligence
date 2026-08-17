@@ -65,6 +65,87 @@ def client() -> TestClient:
     return TestClient(app)
 
 
+# Real May 2025 OEWS figures, captured from actual BLS API responses
+# during Phase 10 research and reused verbatim as fixture data. Using the
+# real numbers (rather than round invented ones) keeps the fixtures
+# recognisable against the live source, and driving them through the real
+# ingestion code path exercises that code too - while the automated suite
+# still never makes a live call.
+#
+# Codes with only a median are the ones whose full distribution was not
+# captured; they double as honest coverage of the partial-data path,
+# where a source publishes some figures and not others.
+_REAL_OEWS_MAY_2025: dict[str, dict[str, str | int]] = {
+    "151252": {
+        "p10": "82460", "p25": "105210", "p50": "135980",
+        "p75": "171980", "p90": "214670", "mean": "148100", "emp": 1687890,
+    },
+    "152051": {
+        "p10": "67240", "p25": "85660", "p50": "120230",
+        "p75": "158880", "p90": "199130", "mean": "126800", "emp": 262440,
+    },
+    "131082": {
+        "p10": "61580", "p25": "78440", "p50": "102320",
+        "p75": "133100", "p90": "167970", "mean": "110740", "emp": 1066670,
+    },
+    "151253": {"p50": "104300"},
+    "152041": {"p50": "105650"},
+    "151255": {"p50": "104000"},
+    "271024": {"p50": "62960"},
+    "413091": {"p50": "69990"},
+    "112022": {"p50": "148270"},
+}
+
+
+@pytest.fixture()
+def ingested_market_data(db_session: Session) -> None:
+    """Persists the real captured OEWS vintage into the test DB by
+    running the actual ingestion function against a stub provider.
+
+    Idempotent (fetch_and_persist upserts by natural key), so repeated
+    use across tests neither duplicates rows nor needs teardown - the
+    same treatment tax brackets and currencies already get from
+    seed_all.
+    """
+    from decimal import Decimal
+
+    from app.market_data.ingest import fetch_and_persist
+    from app.market_data.providers.base import MarketDataProvider, OccupationWages
+
+    class _StubOewsProvider(MarketDataProvider):
+        @property
+        def name(self) -> str:
+            return "stub_oews"
+
+        @property
+        def taxonomy(self) -> str:
+            return "SOC-2018"
+
+        def fetch_national_wages(self, external_code: str) -> OccupationWages:
+            figures = _REAL_OEWS_MAY_2025.get(external_code, {})
+
+            def _dec(key: str) -> Decimal | None:
+                raw = figures.get(key)
+                return Decimal(str(raw)) if raw is not None else None
+
+            employment = figures.get("emp")
+            return OccupationWages(
+                external_code=external_code,
+                external_label=None,
+                reference_year=2025,
+                percentile_10=_dec("p10"),
+                percentile_25=_dec("p25"),
+                percentile_50=_dec("p50"),
+                percentile_75=_dec("p75"),
+                percentile_90=_dec("p90"),
+                mean_value=_dec("mean"),
+                employment_count=int(employment) if employment is not None else None,
+            )
+
+    fetch_and_persist(db_session, _StubOewsProvider())
+    db_session.commit()
+
+
 @pytest.fixture()
 def db_session() -> Generator[Session, None, None]:
     with SessionLocal() as session:

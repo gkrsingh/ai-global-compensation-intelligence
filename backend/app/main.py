@@ -15,6 +15,7 @@ from app.core.logging import configure_logging
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.core.request_id_middleware import RequestIdMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.market_data.api import router as market_data_router
 from app.reference_data.api import router as reference_data_router
 
 configure_logging()
@@ -66,3 +67,4 @@ app.include_router(reference_data_router, prefix="/api/v1")
 app.include_router(compensation_router, prefix="/api/v1")
 app.include_router(comparison_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
+app.include_router(market_data_router, prefix="/api/v1")
