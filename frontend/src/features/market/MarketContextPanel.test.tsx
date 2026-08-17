@@ -290,6 +290,17 @@ describe('MarketContextPanel', () => {
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 
+  it('names the currency explicitly rather than relying on the symbol', async () => {
+    // Survey figures are published in USD even for India and Spain, so
+    // they can appear beside a calculation in INR or EUR. \,231 next to
+    // ₹2,500,000 is too easy to misread, so the currency is stated.
+    stubFetch({ marketContext: context({ country_code: 'IN' }) });
+
+    render(<MarketContextPanel jobFamilyId={1} countryCode="IN" />);
+
+    expect(await screen.findByText(/in USD/)).toBeInTheDocument();
+  });
+
   it('never presents the estimates as part of the calculation', async () => {
     stubFetch({ marketContext: context() });
 

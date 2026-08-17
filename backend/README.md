@@ -48,6 +48,7 @@ outbound calls — so they are run deliberately, never from the request path.
 .venv/bin/python -m app.reference_data.seed                  # reference data + occupation mappings
 .venv/bin/python -m app.reference_data.fetch_exchange_rates  # real ECB rates via Frankfurter
 .venv/bin/python -m app.market_data.ingest                   # real US wage data via BLS OEWS
+.venv/bin/python -m app.market_data.ingest_survey <results.csv>  # Stack Overflow survey aggregates
 ```
 
 `app.market_data.ingest` fetches only the occupations actually mapped to a
@@ -59,3 +60,11 @@ a new vintage inserts new rows and keeps the previous ones as history.
 
 See the root README's "Market data coverage" section for what is and is not
 covered, and the real limitations of the US figures.
+
+`app.market_data.ingest_survey` takes a path rather than downloading: the
+Stack Overflow release is a ~140MB annual file, so fetching it is a
+deliberate operator step. Download it from https://survey.stackoverflow.co/
+(licensed ODbL 1.0) and pass the path. It aggregates real individual
+responses into percentiles, suppressing any cell with fewer than 30
+responses and withholding 10th/90th percentiles below 100 — suppressed
+cells are still persisted with their sample size so the gap stays visible.

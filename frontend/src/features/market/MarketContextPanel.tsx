@@ -109,7 +109,18 @@ function OccupationCard({ occupation }: { occupation: MarketOccupationOut }) {
 
       <div className="market-table-scroll">
         <table className="market-distribution">
-          <caption>Published wage distribution &mdash; {occupation.area_name}</caption>
+          {/* The currency is named explicitly, not left to the symbol.
+              Survey figures are published in USD even for India and
+              Spain, so they can sit next to a calculation denominated in
+              INR or EUR - and "$5,231" beside "₹2,500,000" is far too
+              easy to misread at a glance. Saying it outright costs
+              nothing and removes the ambiguity. The figures are shown in
+              the currency the source published them in rather than
+              converted, so what is displayed is what was reported. */}
+          <caption>
+            Published wage distribution &mdash; {occupation.area_name}, in{' '}
+            {occupation.currency_code}
+          </caption>
           <thead>
             <tr>
               <th scope="col">Experience</th>

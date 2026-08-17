@@ -6,7 +6,7 @@ types.
 
 ## Status
 
-Phases 1–10 complete.
+Phases 1–11 complete.
 
 - **Phase 1 — walking skeleton.** FastAPI backend with a liveness/readiness
   health check, React/Vite frontend, PostgreSQL wired locally, CI (lint,
@@ -53,87 +53,173 @@ Phases 1–10 complete.
   the logs.
 - **Phase 10 — market context.** Published US wage distributions (BLS OEWS)
   shown beside a calculation, kept structurally separate from computed
-  figures — see [Market data coverage](#market-data-coverage) for exactly
-  what is and is not covered, and why.
+  figures.
+- **Phase 11 — second market source.** The Stack Overflow Developer Survey
+  added alongside BLS, closing Phase 10's two honest gaps: India and Spain
+  now have market data, and every country has a years-of-experience
+  breakdown. Sources are shown separately and never averaged, and cells
+  with too few responses are suppressed and labelled rather than published
+  thin — see [Market data coverage](#market-data-coverage).
 
 Nothing is deployed to a real server yet — see [Deployment](#deployment).
 
 ## Market data coverage
 
-Market compensation figures are **statistical estimates from a survey**, not
-facts like a tax bracket or a published exchange rate. They carry a sample, a
-methodology, real uncertainty, and a shelf life. This project keeps that
-distinction structurally: market data has no foreign key into the calculation
-pipeline, provenance columns are mandatory, and the UI renders a distribution
-with its source and caveats rather than a single confident number.
+Market compensation figures are **statistical estimates**, not facts like a tax
+bracket or a published exchange rate. They carry a sample, a methodology, real
+uncertainty, and a shelf life. This project keeps that distinction
+structurally: market data has no foreign key into the calculation pipeline,
+provenance columns are mandatory, and the UI renders distributions with their
+source and caveats rather than a single confident number.
 
-| Country | Status | Source |
+Two sources are ingested. They are shown **separately and never combined** —
+see [Why the two sources disagree](#why-the-two-sources-disagree).
+
+| Country | BLS OEWS | Stack Overflow Survey | Seniority breakdown |
+| --- | --- | --- | --- |
+| United States | Yes — full percentiles | Yes — 4,488 responses | Yes |
+| India | No | Yes — 898 responses | Yes (pooled) |
+| Spain | No | Yes — 453 responses | Yes (pooled) |
+
+Sample counts are responses remaining after the disclosed filter, from the
+2025 survey release (49,191 responses worldwide).
+
+### Suppression: when a cell is not published
+
+A percentile computed from four responses is noise wearing a statistic, so
+cells are withheld rather than published thin. Following BLS's own precedent
+of suppressing estimates that fail its reliability screens:
+
+| Sample size | What is published |
+| --- | --- |
+| under 30 | **Nothing.** Shown as "insufficient sample" with the count, never silently omitted |
+| 30–99 | Median and 25th/75th percentiles |
+| 100+ | Adds 10th and 90th percentiles |
+
+Tails need more data than the centre — at n=30 a 10th percentile rests on
+roughly three observations. A withheld figure is always shown as withheld: an
+invisible gap looks like no gap at all.
+
+### Survey filter, and why it changes the numbers
+
+Two exclusions, both disclosed on every figure they affect:
+
+1. **Employed respondents only** — students, the unemployed, the retired and
+   freelancers report figures that are not comparable salaried wages.
+2. **At least $1,000/yr** — the raw file genuinely contains values of $1, and
+   1.3–3.8% of responses fall below $1,000, which is not a plausible annual
+   salary in any covered country.
+
+Measured effect: medians barely move (US stays at $150,000) while contaminated
+tails clean up (US 10th percentile $62,640 → $80,000). That is the signature
+of removing junk, not of reshaping a distribution.
+
+### Why the two sources disagree
+
+They measure different things, and for US software roles the gap is large:
+
+| | BLS OEWS | Stack Overflow Survey |
 | --- | --- | --- |
-| United States | Supported | BLS OEWS, national, full wage percentiles |
-| Spain | **Not supported** | INE EAES publishes occupation **or** percentiles, never both together |
-| India | **Not supported** | No free, occupation-level published wage distribution |
+| Who reports it | Employers | Individuals, self-reported |
+| What it counts | Straight-time base pay; **excludes** bonus and equity | Total compensation as the respondent understands it |
+| Population | All establishments, nationally representative | People who read Stack Overflow |
+| US software median | $135,980 | $140,000 (full-stack) to $176,000 (back-end) |
 
-### Why India is not supported
+Both are shown with their own methodology, and are **never averaged**.
+Averaging two differently-methodologied figures would produce a number neither
+source reported — the exact fabrication this project exists to avoid.
 
-Stated plainly because it is a real limitation, not an oversight, and because
-it is the market this project's author most wants covered.
+**A genuine cross-validation worth stating:** the survey's US full-stack
+median of $140,000 lands within about 1% of the BLS software developer median
+of $135,980. Two entirely independent methodologies — an employer-reported
+establishment survey and a self-reported web survey — converging that closely
+on the same population is real evidence about data quality, not a coincidence.
+It does not validate the survey's India or Spain samples, which are far
+smaller and differently skewed, but it does mean the survey's central tendency
+is not wildly inflated where it can be checked.
 
-India's Periodic Labour Force Survey (PLFS) is a genuine, high-quality
-official source, and it does publish earnings — but only as **average monthly
-earnings broken down by employment type and gender** (e.g. regular
-wage/salaried employees, 2025), not as a wage distribution by occupation.
-There is no free JSON API; `microdata.gov.in` distributes microdata files that
-require registration and your own statistical analysis.
+### India: real data, with a real caveat
 
-Deriving occupation-level percentiles ourselves from that microdata would mean
-publishing a statistic **we** computed while presenting it as an official
-figure. That is precisely the manufactured precision this project exists to
-avoid, so India is marked unsupported instead. The API answers a request for
-Indian market context with an explicit `available: false` and a stated reason,
-never an empty response.
+India went from no market data at all to 898 usable responses with a
+years-of-experience breakdown. That closes the biggest gap this project had.
 
-This would become supportable if MoSPI began publishing occupation-by-earnings
-cross-tabulations (NCO-coded) as a citable aggregate, or via ILOSTAT if a
-working, verifiable access path for its ISCO-08 earnings-by-occupation
-indicator can be established — attempted during Phase 10 research, not
-successfully verified.
+**But the sample is not representative of the Indian developer market.** It
+skews heavily toward product-company and globally-connected developers, and
+the medians read high against broad Indian IT-services compensation. These are
+real reported figures from real people, but they are one visible, self-selected
+slice — not a general benchmark. The UI states this as a prominent banner
+above the figures, not a footnote, because this project exists partly to avoid
+MNC-skewed sources and must not quietly substitute a different skew.
 
-### Why Spain is not supported
+### Experience bands are years, not job levels
 
-Spain's INE does offer a real, free, keyless JSON API, and it was verified
-working. The blocker is the shape of the data: the salary-structure survey
-(EAES) publishes **mean gross annual salary by CNO-11 major occupation group**,
-or **percentiles by region** — never occupation and percentiles together. The
-occupation bucket a software engineer falls into ("Otros técnicos y
-profesionales científicos e intelectuales") also lumps together engineers,
-lawyers, economists and architects, so a single mean from it would bias
-downward for a technology role and could not tell a user whether they are above
-or below market. The schema deliberately supports mean-only data so Spain can
-be added without a migration if INE ever publishes occupation × percentile
-cross-tabs.
+Bands are stored and displayed exactly as measured — "6-10 yrs" — and are
+never relabelled "Senior" or "Staff". No source publishes a mapping from years
+of experience to job titles, so asserting one would be an inference dressed as
+data. Locate yourself in the distribution; the tool will not do it for you.
 
-### Known limitations of the US data
+Outside the US, role-by-experience cells fall below the publication threshold,
+so the seniority breakdown comes from **all developer roles pooled** — labelled
+as such, because it is not specific to any specialisation.
 
-- **Excludes bonuses and equity.** OEWS wages are straight-time gross pay:
-  base, cost-of-living allowances, commissions and *production* bonuses are
-  included; overtime, *non-production* bonuses (the typical annual bonus),
-  benefits and stock are excluded. For technology roles this is frequently
-  20–50% of total compensation, so the UI states it as a prominent warning.
-- **Gross, not net.** Compare against your gross figure, never your net.
-- **No seniority or specialisation.** OEWS publishes a distribution per
-  occupation and nothing about levels; "Software Developers" is one bucket
-  covering backend, frontend, mobile and ML alike. Locate yourself in the
-  range rather than reading a percentile as a level.
+### Known limitations
+
+**BLS OEWS (US only)**
+
+- **Excludes bonuses and equity.** Straight-time gross pay: base,
+  cost-of-living allowances, commissions and *production* bonuses in;
+  overtime, *non-production* bonuses, benefits and stock out. For technology
+  roles that is frequently 20–50% of total compensation, so the UI states it
+  as a prominent warning.
+- **No seniority or specialisation.** "Software Developers" is one bucket
+  covering backend, frontend, mobile and ML alike.
 - **National only.** Nothing in the app collects a user's location, so there
   is no honest basis for selecting a metro area. Metro and state data exist in
-  OEWS and the schema is ready for them; adding a location field would unlock
-  them.
-- **Mapping quality varies and is labeled.** Software Engineering → SOC
-  15-1252 is a close match; Product Management is a *poor* match because
-  SOC-2018 has no product management occupation at all.
-- **Annually published, with a real lag.** The May 2025 vintage was released
+  OEWS and the schema is ready for them.
+- **Annually published with a real lag** — the May 2025 vintage was released
   2026-05-15. Both dates are stored and shown.
 - **Self-employed excluded** from the survey entirely.
+
+**Stack Overflow Survey (US, India, Spain)**
+
+- **Self-reported and self-selected.** Respondents are Stack Overflow readers,
+  who skew more engaged and more experienced than the workforce overall.
+- **Figures are published in USD**, using Stack Overflow's own conversion at
+  the exchange rate on 25 June 2025 — so they appear in USD even beside an INR
+  or EUR calculation, and the currency is named explicitly in the UI. They are
+  shown as published rather than re-converted.
+- **"Total compensation" is whatever the respondent understood it to mean**,
+  which is not a controlled definition.
+- **Thin outside the US.** Spain's role-level cells are mostly suppressed; the
+  pooled figures carry far more weight than any single role.
+- **Developer roles only.** Sales has no counterpart in a developer survey and
+  correctly gets no data. Design is covered in principle but samples are too
+  thin to publish.
+- **Licensed ODbL 1.0** (contents DbCL 1.0), which permits this use with
+  attribution. ODbL is copyleft: if this app is ever publicly deployed, the
+  derived aggregates must be offered under ODbL as well.
+
+### Sources considered and rejected
+
+- **Eurostat Structure of Earnings Survey** — publishes occupation at ISCO
+  1-digit level ("Professionals"), *broader* than the INE bucket already
+  rejected as too coarse. Four-yearly, latest reference year 2022.
+- **Spain's INE EAES** — a real, free, working JSON API, but it publishes mean
+  salary by CNO-11 major group *or* percentiles by region, never both. The
+  bucket a software engineer falls into also contains lawyers, economists and
+  architects, so a single mean from it would bias downward for a technology
+  role. The schema supports mean-only data, so Spain via INE remains addable
+  if INE ever publishes occupation × percentile cross-tabs.
+- **India's PLFS** — publishes average monthly earnings by employment type and
+  gender, not a wage distribution by occupation, and offers no free API.
+  Deriving occupation percentiles from its microdata would mean publishing a
+  statistic *we* computed while presenting it as official.
+- **Recruitment salary guides** (Michael Page, Randstad, NASSCOM) — publish
+  ranges without sample sizes or methodology. Disqualifying on this project's
+  own terms: the suppression rule requires knowing the sample size.
+- **Glassdoor, AmbitionBox, levels.fyi, Payscale and similar** — prohibited by
+  their terms, and they are the skewed aggregators this project exists to work
+  around.
 
 ## Repository structure
 
