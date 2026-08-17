@@ -44,3 +44,17 @@ class TaxRuleSetOut(BaseModel):
     source_url: str | None
     currency: CurrencyOut
     tax_brackets: list[TaxBracketOut]
+
+
+class JobFamilyOut(BaseModel):
+    """Exposed in Phase 10: the calculator form had no way to send a job
+    family (nothing ever fetched the list), so job_family_id was always
+    null and market context - which needs a family to map onto a
+    published occupation - could never appear for any real user.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None

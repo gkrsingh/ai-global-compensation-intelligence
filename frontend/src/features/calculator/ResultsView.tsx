@@ -1,5 +1,6 @@
 import type { CalculationOut } from '../../api/client';
 import { AIInsightPanel } from '../ai/AIInsightPanel';
+import { MarketContextPanel } from '../market/MarketContextPanel';
 import { parseBreakdown } from './breakdown';
 import { formatCurrency, formatRate } from './format';
 import { componentTypeLabel, taxComponentLabel } from './labels';
@@ -176,6 +177,26 @@ export function ResultsView({
           per-offer views inside a Comparison (showActions=false) -
           that comparison already gets its own, more relevant insight
           covering all offers at once. */}
+      {/* Market context needs a job family to map onto a published
+          occupation, and the calculator does not require one - so this
+          is simply absent when the user did not pick a family, rather
+          than rendering an empty or guessed panel. Unlike the AI panel
+          it needs no auth (public government statistics) and is shown
+          for embedded per-offer views too, since each offer's own
+          country/role is exactly what its market comparison depends
+          on. */}
+      {/* `!= null` rather than `!== null`: this also covers an absent
+          field, not just an explicit null. A stale client or an older
+          cached payload without job_family_id would otherwise slip
+          through as "present" and request market context for
+          undefined. */}
+      {calculation.job_family_id != null && calculation.country_code && (
+        <MarketContextPanel
+          jobFamilyId={calculation.job_family_id}
+          countryCode={calculation.country_code}
+        />
+      )}
+
       {showActions && calculation.user_id !== null && (
         <AIInsightPanel target={{ calculationId: calculation.id }} />
       )}

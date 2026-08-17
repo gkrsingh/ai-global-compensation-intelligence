@@ -195,6 +195,146 @@ fieldset {
   margin: 0.6rem 0 0;
 }
 
+/* Market context (Phase 10).
+   Amber accent, deliberately distinct from both the calculation results
+   (unaccented) and the AI insight panel's purple, and a dashed border
+   rather than solid: the visual language for "survey estimate" has to be
+   different at a glance from "figure we computed for you". */
+.market-context-panel {
+  border: 1px dashed #b45309;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.market-context-panel h3 {
+  color: #b45309;
+  margin-top: 0;
+}
+
+.market-context-intro {
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+/* Above the numbers, not below them - this is the caveat most likely to
+   mislead a technology hire if it is missed. */
+.market-warning {
+  border-left: 4px solid #b45309;
+  background: rgba(180, 83, 9, 0.08);
+  padding: 0.7rem 0.9rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+}
+
+.market-occupation {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.market-occupation-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.market-occupation-header h4 {
+  margin: 0;
+}
+
+.market-match {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Colour-coded, but never colour-ALONE: the text always says which it is,
+   so the signal survives greyscale and colour-blindness. */
+.market-match-close {
+  background: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+}
+
+.market-match-broad {
+  background: rgba(180, 83, 9, 0.15);
+  color: #b45309;
+}
+
+.market-match-poor {
+  background: rgba(185, 28, 28, 0.15);
+  color: #b91c1c;
+}
+
+.market-match-note {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin: 0.5rem 0 0.9rem;
+}
+
+.market-distribution {
+  margin-bottom: 0.9rem;
+}
+
+.market-distribution caption {
+  text-align: left;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  padding-bottom: 0.35rem;
+}
+
+.market-distribution th {
+  font-weight: 500;
+  width: 55%;
+}
+
+.market-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A figure the source never published. Muted and italic so it reads as an
+   absence rather than a value - it must never look like a number. */
+.market-value-missing {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.market-provenance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem 1rem;
+  font-size: 0.8rem;
+  margin: 0 0 0.75rem;
+}
+
+.market-provenance dt {
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.market-provenance dd {
+  margin: 0;
+}
+
+.market-methodology,
+.market-context-disclaimer {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  margin: 0.5rem 0 0;
+}
+
+.market-unavailable {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

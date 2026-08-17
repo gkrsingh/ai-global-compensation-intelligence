@@ -2,11 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CalculationOut } from '../../api/client';
+import { stubFetch } from '../../test/apiMocks';
 import { ResultsView } from './ResultsView';
 
 const US_CALCULATION: CalculationOut = {
   id: 2,
   compensation_input_id: 4,
+  country_code: 'US',
+  job_family_id: null,
   user_id: null,
   engine_version: '1.0.0',
   gross_amount: '150000.00',
@@ -78,6 +81,8 @@ const US_CALCULATION: CalculationOut = {
 const NO_TAX_RULE_SET_CALCULATION: CalculationOut = {
   id: 3,
   compensation_input_id: 5,
+  country_code: 'US',
+  job_family_id: null,
   user_id: null,
   engine_version: '1.0.0',
   gross_amount: '50000.00',
@@ -107,6 +112,8 @@ const NO_TAX_RULE_SET_CALCULATION: CalculationOut = {
 const INDIA_TO_EUR_CALCULATION: CalculationOut = {
   id: 4,
   compensation_input_id: 6,
+  country_code: 'US',
+  job_family_id: null,
   user_id: null,
   engine_version: '1.0.0',
   gross_amount: '15000.00',
@@ -265,5 +272,38 @@ describe('ResultsView', () => {
     // whole) already covers this - each per-offer breakdown embedded
     // inside it doesn't need a second, narrower one of its own.
     expect(screen.queryByRole('button', { name: 'Generate AI insight' })).not.toBeInTheDocument();
+  });
+
+  it('omits market context entirely when the calculation has no job family', () => {
+    // The calculator does not require a job family, and there is no
+    // honest way to map a missing one onto a published occupation -
+    // so the panel is absent rather than guessing or rendering empty.
+    render(
+      <ResultsView
+        calculation={{ ...US_CALCULATION, job_family_id: null }}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Market context')).not.toBeInTheDocument();
+  });
+
+  it('shows market context when the calculation has a job family', async () => {
+    stubFetch({
+      marketContext: {
+        country_code: 'US',
+        job_family_id: 1,
+        job_family_name: 'Software Engineering',
+        available: false,
+        unavailable_reason: 'No wage data has been ingested yet.',
+        occupations: [],
+      },
+    });
+
+    render(
+      <ResultsView calculation={{ ...US_CALCULATION, job_family_id: 1 }} onReset={vi.fn()} />,
+    );
+
+    expect(await screen.findByText('Market context')).toBeInTheDocument();
   });
 });

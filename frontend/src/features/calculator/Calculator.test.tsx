@@ -9,6 +9,8 @@ import { Calculator } from './Calculator';
 const CALCULATION: CalculationOut = {
   id: 1,
   compensation_input_id: 1,
+  country_code: 'US',
+  job_family_id: null,
   user_id: null,
   engine_version: '1.0.0',
   gross_amount: '50000.00',

@@ -135,3 +135,17 @@ class Calculation(Base):
     compensation_input: Mapped[CompensationInput] = relationship(back_populates="calculations")
     tax_rule_set: Mapped[TaxRuleSet | None] = relationship()
     user: Mapped[User | None] = relationship()
+
+    # Read-through conveniences added in Phase 10, NOT stored columns: a
+    # calculation result previously carried no indication of which country
+    # or role it was for, so a consumer holding only a CalculationOut
+    # could not look up the matching market context. Exposed here rather
+    # than assembled in the API layer so CalculationOut's from_attributes
+    # picks them up at every existing call site unchanged.
+    @property
+    def country_code(self) -> str:
+        return self.compensation_input.country.code
+
+    @property
+    def job_family_id(self) -> int | None:
+        return self.compensation_input.job_family_id

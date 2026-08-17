@@ -32,6 +32,11 @@ export type MetricGapAnalysisOut = components['schemas']['MetricGapAnalysisOut']
 export type MetricGapEntryOut = components['schemas']['MetricGapEntryOut'];
 export type PaginatedComparisonsOut = components['schemas']['PaginatedComparisonsOut'];
 export type AIInsightOut = components['schemas']['AIInsightOut'];
+export type MarketContextOut = components['schemas']['MarketContextOut'];
+export type MarketOccupationOut = components['schemas']['MarketOccupationOut'];
+export type WageDistributionOut = components['schemas']['WageDistributionOut'];
+export type MatchQuality = components['schemas']['MatchQuality'];
+export type JobFamily = components['schemas']['JobFamilyOut'];
 
 /**
  * The FastAPI-generated OpenAPI schema documents 422 responses as
@@ -76,6 +81,14 @@ export async function fetchCountries(): Promise<Country[]> {
     throw await parseErrorResponse(response);
   }
   return (await response.json()) as Country[];
+}
+
+export async function fetchJobFamilies(): Promise<JobFamily[]> {
+  const response = await fetch(`${API_BASE_URL}/job-families`);
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as JobFamily[];
 }
 
 export async function fetchTaxRuleSets(countryCode: string): Promise<TaxRuleSet[]> {
@@ -226,6 +239,30 @@ export async function fetchComparison(id: number): Promise<ComparisonDetailOut> 
     throw await parseErrorResponse(response);
   }
   return (await response.json()) as ComparisonDetailOut;
+}
+
+/**
+ * Published market wage distributions for a job family in a country.
+ *
+ * Unauthenticated on purpose: these are public government statistics, not
+ * user-owned data. Note the backend answers "no data for this country"
+ * with a 200 and available=false plus a stated reason, NOT an error and
+ * NOT an empty list - so callers must render `unavailable_reason` rather
+ * than treating a missing distribution as nothing to say.
+ */
+export async function fetchMarketContext(
+  jobFamilyId: number,
+  countryCode: string,
+): Promise<MarketContextOut> {
+  const params = new URLSearchParams({
+    job_family_id: String(jobFamilyId),
+    country_code: countryCode,
+  });
+  const response = await fetch(`${API_BASE_URL}/market-context?${params.toString()}`);
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as MarketContextOut;
 }
 
 export type AIInsightTarget = { calculationId: number } | { comparisonId: number };

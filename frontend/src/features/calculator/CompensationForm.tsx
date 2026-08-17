@@ -6,6 +6,8 @@ import {
   type ComponentType,
   type CompensationComponentIn,
   type CompensationInputCreate,
+  fetchJobFamilies,
+  type JobFamily,
   type Country,
   type Currency,
 } from '../../api/client';
@@ -49,6 +51,12 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [regimeOptions, setRegimeOptions] = useState<string[]>([]);
   const [regime, setRegime] = useState('');
+  const [jobFamilies, setJobFamilies] = useState<JobFamily[]>([]);
+  // Optional on purpose: the calculator has always worked without a job
+  // family and must keep doing so. Selecting one only unlocks the market
+  // context panel, which needs a family to map onto a published
+  // occupation - it is never required to compute a result.
+  const [jobFamilyId, setJobFamilyId] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +78,23 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
         setCountriesState({ kind: 'error', message });
       });
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    // A failure here must never block the calculator: job family is
+    // optional, so an empty list simply means no market context, not a
+    // broken form.
+    fetchJobFamilies()
+      .then((families) => {
+        if (!cancelled) setJobFamilies(families);
+      })
+      .catch(() => {
+        if (!cancelled) setJobFamilies([]);
+      });
     return () => {
       cancelled = true;
     };
@@ -193,6 +218,7 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
       country_code: countryCode,
       target_currency_code: targetCurrencyCode,
       regime: regimeOptions.length > 1 ? regime : null,
+      job_family_id: jobFamilyId === '' ? null : Number(jobFamilyId),
       components,
     });
   }
@@ -231,6 +257,28 @@ export function CompensationForm({ onSubmit, submitting = false }: CompensationF
           ))}
         </select>
       </div>
+
+      {jobFamilies.length > 0 && (
+        <div className="field">
+          <label htmlFor="job-family">Job family (optional)</label>
+          <select
+            id="job-family"
+            value={jobFamilyId}
+            onChange={(event) => setJobFamilyId(event.target.value)}
+          >
+            <option value="">Not specified</option>
+            {jobFamilies.map((family) => (
+              <option key={family.id} value={String(family.id)}>
+                {family.name}
+              </option>
+            ))}
+          </select>
+          <p className="field-hint">
+            Only used to show published market wage statistics alongside your result. It does not
+            affect any calculated figure.
+          </p>
+        </div>
+      )}
 
       <div className="field">
         <label htmlFor="target-currency">Target currency</label>

@@ -6,6 +6,7 @@ import type {
   CalculationOut,
   ComparisonDetailOut,
   Country,
+  MarketContextOut,
   PaginatedCalculationsOut,
   PaginatedComparisonsOut,
   TaxRuleSet,
@@ -37,6 +38,7 @@ interface FetchStubs {
   // the other stubs which only ever need one canned response.
   getComparison?: Record<string, ComparisonDetailOut | ErrorResponse>;
   createAIInsight?: AIInsightOut | ErrorResponse;
+  marketContext?: MarketContextOut | ErrorResponse;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
@@ -114,6 +116,10 @@ export function stubFetch(stubs: FetchStubs) {
     if (comparisonDetailMatch && method === 'GET') {
       const body = stubs.getComparison?.[comparisonDetailMatch[1]];
       return respondFrom(body, 200);
+    }
+
+    if (url.includes('/market-context')) {
+      return respondFrom(stubs.marketContext, 200);
     }
 
     if (url.endsWith('/ai-insights') && method === 'POST') {

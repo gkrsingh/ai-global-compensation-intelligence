@@ -9,6 +9,8 @@ function calculation(id: number, grossAmount: string): CalculationOut {
   return {
     id,
     compensation_input_id: id,
+    country_code: 'US',
+    job_family_id: null,
     user_id: 1,
     engine_version: '1.0.0',
     gross_amount: grossAmount,
