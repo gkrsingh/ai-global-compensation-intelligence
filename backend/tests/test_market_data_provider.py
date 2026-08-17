@@ -111,6 +111,23 @@ def test_fetch_parses_a_successful_response_and_requests_the_expected_series() -
     assert wages.has_any_value is True
 
 
+def test_external_label_is_none_when_the_response_carries_no_occupation_title() -> None:
+    """BLS v1 returns catalog metadata (including the occupation title)
+    only when asked for it, so a plain data request carries no label.
+    That must surface as None so the ingestion layer can substitute its
+    own verified label - degrading to the bare code here would put
+    "151252" in front of a user instead of "Software Developers", which
+    is exactly what running the real ingestion first revealed.
+    """
+    provider = _provider_with_handler(
+        lambda request: httpx.Response(200, json=_series_payload(_REAL_15_1252))
+    )
+    wages = provider.fetch_national_wages("151252")
+
+    assert wages.external_label is None
+    assert wages.external_code == "151252"
+
+
 def test_a_percentile_the_source_did_not_publish_stays_none_never_zero() -> None:
     """OEWS suppresses estimates failing its reliability screens
     (footnote 8, "Estimate not released"). A suppressed figure must reach

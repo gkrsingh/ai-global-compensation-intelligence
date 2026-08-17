@@ -154,11 +154,14 @@ class BlsOewsProvider(MarketDataProvider):
             values[field] = entry[1] if entry is not None and entry[0] == reference_year else None
 
         employment = values.pop("employment_count", None)
-        label = self._series_title(payload, series_by_field["percentile_50"]) or external_code
 
         return OccupationWages(
             external_code=external_code,
-            external_label=label,
+            # May be None: BLS v1 returns catalog metadata only when asked
+            # for it. The ingestion layer supplies the verified label from
+            # its own mapping rows in that case, rather than this adapter
+            # inventing one or degrading to the bare numeric code.
+            external_label=self._series_title(payload, series_by_field["percentile_50"]),
             reference_year=reference_year,
             employment_count=int(employment) if employment is not None else None,
             **values,

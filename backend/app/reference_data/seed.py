@@ -371,6 +371,15 @@ def seed_all(session: Session) -> None:
     seed_experience_levels(session)
     seed_employment_types(session)
     seed_tax_rule_sets(session, countries, currencies)
+    # Imported here rather than at module scope: market_data.seed imports
+    # from reference_data.models, so a top-level import in this direction
+    # would be a genuine circular import, not a style preference. The
+    # occupation mappings are reference data (a stable, cited taxonomy
+    # bridge), so they belong in the same idempotent seed pass rather
+    # than needing a separate command a deployer could forget.
+    from app.market_data.seed import seed_us_occupation_mappings
+
+    seed_us_occupation_mappings(session)
     session.commit()
 
 

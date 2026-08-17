@@ -29,7 +29,13 @@ class OccupationWages:
     """
 
     external_code: str
-    external_label: str
+    # None when the source's response carried no occupation title (BLS v1
+    # only returns catalog metadata on request). Deliberately NOT
+    # defaulted to the bare code: a caller that already holds a verified
+    # label should use it, and silently substituting "151252" for
+    # "Software Developers" would strip exactly the source wording the UI
+    # needs to show how broad the published bucket really is.
+    external_label: str | None
     reference_year: int
     percentile_10: Decimal | None = None
     percentile_25: Decimal | None = None
