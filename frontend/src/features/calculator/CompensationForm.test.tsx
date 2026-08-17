@@ -60,6 +60,11 @@ describe('CompensationForm', () => {
       country_code: 'ES',
       target_currency_code: 'EUR',
       regime: null,
+      // Null when the user picks no job family, which stays the default.
+      // The calculator must keep working without one - a family only
+      // unlocks the market context panel, it never affects a computed
+      // figure.
+      job_family_id: null,
       components: [
         { component_type: 'base', amount: '50000', currency_code: 'EUR', description: null },
       ],

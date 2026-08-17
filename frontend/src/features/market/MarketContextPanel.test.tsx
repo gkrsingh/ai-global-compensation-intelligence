@@ -99,9 +99,7 @@ describe('MarketContextPanel', () => {
 
     // Text, not just colour - the signal has to survive greyscale.
     expect(await screen.findByText('Poor match')).toBeInTheDocument();
-    expect(
-      screen.getByText(/no product management occupation/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no product management occupation/i)).toBeInTheDocument();
   });
 
   it('shows provenance: source, collection period and geographic scope', async () => {
@@ -155,8 +153,7 @@ describe('MarketContextPanel', () => {
       marketContext: context({
         country_code: 'IN',
         available: false,
-        unavailable_reason:
-          'No market compensation data is available for this country.',
+        unavailable_reason: 'No market compensation data is available for this country.',
         occupations: [],
       }),
     });

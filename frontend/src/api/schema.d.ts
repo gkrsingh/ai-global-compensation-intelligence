@@ -4,1267 +4,1267 @@
  */
 
 export interface paths {
-    "/api/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health
-         * @description Liveness + readiness check.
-         *
-         *     "api" reflects the process being up (always "ok" if this code runs at
-         *     all). "database" reflects the SELECT 1 readiness check. Overall status
-         *     is "degraded" with a 503 if any check fails, so a load balancer or
-         *     orchestrator polling this endpoint can distinguish ready from not-ready
-         *     by status code alone, not just by parsing the body.
-         */
-        get: operations["health_api_v1_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/v1/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register */
-        post: operations["register_api_v1_auth_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Health
+     * @description Liveness + readiness check.
+     *
+     *     "api" reflects the process being up (always "ok" if this code runs at
+     *     all). "database" reflects the SELECT 1 readiness check. Overall status
+     *     is "degraded" with a 503 if any check fails, so a load balancer or
+     *     orchestrator polling this endpoint can distinguish ready from not-ready
+     *     by status code alone, not just by parsing the body.
+     */
+    get: operations['health_api_v1_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login */
-        post: operations["login_api_v1_auth_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Register */
+    post: operations['register_api_v1_auth_register_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Refresh */
-        post: operations["refresh_api_v1_auth_refresh_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Login */
+    post: operations['login_api_v1_auth_login_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Logout */
-        post: operations["logout_api_v1_auth_logout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Refresh */
+    post: operations['refresh_api_v1_auth_refresh_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/countries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Countries */
-        get: operations["list_countries_api_v1_countries_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Logout */
+    post: operations['logout_api_v1_auth_logout_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/countries': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/job-families": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Job Families
-         * @description Added in Phase 10. The job_families table has existed since Phase
-         *     2 and CompensationInput has always accepted a job_family_id, but
-         *     nothing ever exposed the list - so the calculator form could not
-         *     offer it, every calculation stored NULL, and market context (which
-         *     needs a family to map onto a published occupation) would have been
-         *     unreachable for every real user. Found by opening the running app
-         *     rather than by reading the code.
-         */
-        get: operations["list_job_families_api_v1_job_families_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List Countries */
+    get: operations['list_countries_api_v1_countries_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/job-families': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/countries/{country_code}/tax-rule-sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Tax Rule Sets */
-        get: operations["list_tax_rule_sets_api_v1_countries__country_code__tax_rule_sets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List Job Families
+     * @description Added in Phase 10. The job_families table has existed since Phase
+     *     2 and CompensationInput has always accepted a job_family_id, but
+     *     nothing ever exposed the list - so the calculator form could not
+     *     offer it, every calculation stored NULL, and market context (which
+     *     needs a family to map onto a published occupation) would have been
+     *     unreachable for every real user. Found by opening the running app
+     *     rather than by reading the code.
+     */
+    get: operations['list_job_families_api_v1_job_families_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/countries/{country_code}/tax-rule-sets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/calculations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Calculation */
-        post: operations["create_calculation_api_v1_calculations_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List Tax Rule Sets */
+    get: operations['list_tax_rule_sets_api_v1_countries__country_code__tax_rule_sets_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/calculations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/calculations/mine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List My Calculations
-         * @description Auth is required here (unlike POST /calculations) - there is no
-         *     such thing as anonymous history to return, so "not logged in" really
-         *     is a blocking condition for this one endpoint.
-         */
-        get: operations["list_my_calculations_api_v1_calculations_mine_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Create Calculation */
+    post: operations['create_calculation_api_v1_calculations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/calculations/mine': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/comparisons": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Comparison
-         * @description Auth is always required - unlike POST /calculations, there is no
-         *     anonymous equivalent: a comparison inherently operates on saved
-         *     history, which anonymous use doesn't have.
-         */
-        post: operations["create_comparison_api_v1_comparisons_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List My Calculations
+     * @description Auth is required here (unlike POST /calculations) - there is no
+     *     such thing as anonymous history to return, so "not logged in" really
+     *     is a blocking condition for this one endpoint.
+     */
+    get: operations['list_my_calculations_api_v1_calculations_mine_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comparisons': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/comparisons/mine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List My Comparisons */
-        get: operations["list_my_comparisons_api_v1_comparisons_mine_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Create Comparison
+     * @description Auth is always required - unlike POST /calculations, there is no
+     *     anonymous equivalent: a comparison inherently operates on saved
+     *     history, which anonymous use doesn't have.
+     */
+    post: operations['create_comparison_api_v1_comparisons_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comparisons/mine': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/comparisons/{comparison_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Comparison
-         * @description Scoped to the caller's own comparisons only - a comparison_id
-         *     belonging to another user returns the same 404 as one that doesn't
-         *     exist at all (see UnknownCalculationError's docstring for the same
-         *     enumeration-avoidance reasoning applied here at the read side).
-         */
-        get: operations["get_comparison_api_v1_comparisons__comparison_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List My Comparisons */
+    get: operations['list_my_comparisons_api_v1_comparisons_mine_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comparisons/{comparison_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/ai-insights": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Or Get Insight
-         * @description Auth is always required - like Phase 7's comparisons, AI insight
-         *     has no anonymous equivalent: it costs real money per call and needs
-         *     a real identity to attach accountability to.
-         *
-         *     Deliberately idempotent-safe despite being a POST: a repeated call
-         *     for the same target returns the same cached, already-passed result
-         *     rather than generating (and re-billing) again - see
-         *     get_or_generate_insight's own caching logic. 200, not 201, for this
-         *     reason - a cache hit genuinely isn't "creating" anything, and the
-         *     caller shouldn't need to care which happened.
-         */
-        post: operations["create_or_get_insight_api_v1_ai_insights_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get Comparison
+     * @description Scoped to the caller's own comparisons only - a comparison_id
+     *     belonging to another user returns the same 404 as one that doesn't
+     *     exist at all (see UnknownCalculationError's docstring for the same
+     *     enumeration-avoidance reasoning applied here at the read side).
+     */
+    get: operations['get_comparison_api_v1_comparisons__comparison_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/ai-insights': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/market-context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Market Context
-         * @description Published market wage distributions for a job family in a country.
-         *
-         *     Returns 200 with available=False and a stated reason when there is
-         *     genuinely no data, rather than 404 or an empty list: "this country
-         *     has no citable source" is a real answer, not a failed lookup. A 404
-         *     is reserved for an actually-unknown country or job family, which is a
-         *     caller error rather than a coverage gap.
-         */
-        get: operations["get_market_context_api_v1_market_context_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Create Or Get Insight
+     * @description Auth is always required - like Phase 7's comparisons, AI insight
+     *     has no anonymous equivalent: it costs real money per call and needs
+     *     a real identity to attach accountability to.
+     *
+     *     Deliberately idempotent-safe despite being a POST: a repeated call
+     *     for the same target returns the same cached, already-passed result
+     *     rather than generating (and re-billing) again - see
+     *     get_or_generate_insight's own caching logic. 200, not 201, for this
+     *     reason - a cache hit genuinely isn't "creating" anything, and the
+     *     caller shouldn't need to care which happened.
+     */
+    post: operations['create_or_get_insight_api_v1_ai_insights_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/market-context': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /**
+     * Get Market Context
+     * @description Published market wage distributions for a job family in a country.
+     *
+     *     Returns 200 with available=False and a stated reason when there is
+     *     genuinely no data, rather than 404 or an empty list: "this country
+     *     has no citable source" is a real answer, not a failed lookup. A 404
+     *     is reserved for an actually-unknown country or job family, which is a
+     *     caller error rather than a coverage gap.
+     */
+    get: operations['get_market_context_api_v1_market_context_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /** AIInsightCreate */
-        AIInsightCreate: {
-            /** Calculation Id */
-            calculation_id?: number | null;
-            /** Comparison Id */
-            comparison_id?: number | null;
-        };
-        /** AIInsightOut */
-        AIInsightOut: {
-            /** Id */
-            id: number;
-            /** Request Id */
-            request_id: number;
-            /** Calculation Id */
-            calculation_id: number | null;
-            /** Comparison Id */
-            comparison_id: number | null;
-            /** Provider */
-            provider: string;
-            /** Model */
-            model: string;
-            /** Generated Text */
-            generated_text: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Cached */
-            cached: boolean;
-        };
-        /** AccessTokenOut */
-        AccessTokenOut: {
-            /** Access Token */
-            access_token: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type: string;
-        };
-        /** CalculationOut */
-        CalculationOut: {
-            /** Id */
-            id: number;
-            /** Compensation Input Id */
-            compensation_input_id: number;
-            /** User Id */
-            user_id: number | null;
-            /** Engine Version */
-            engine_version: string;
-            /** Gross Amount */
-            gross_amount: string;
-            /** Total Compensation Amount */
-            total_compensation_amount: string;
-            /** Tax Rule Set Id */
-            tax_rule_set_id: number | null;
-            /** Total Tax Amount */
-            total_tax_amount: string | null;
-            /** Net Amount */
-            net_amount: string | null;
-            /** Breakdown */
-            breakdown: {
-                [key: string]: unknown;
-            };
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Country Code */
-            country_code: string;
-            /** Job Family Id */
-            job_family_id: number | null;
-        };
-        /** ComparisonCreate */
-        ComparisonCreate: {
-            /** Name */
-            name: string;
-            /** Comparison Currency Code */
-            comparison_currency_code: string;
-            /** Calculation Ids */
-            calculation_ids: number[];
-            /** As Of Date */
-            as_of_date?: string | null;
-        };
-        /** ComparisonDetailOut */
-        ComparisonDetailOut: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Comparison Currency */
-            comparison_currency: string;
-            /**
-             * As Of Date
-             * Format: date
-             */
-            as_of_date: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Entries */
-            entries: components["schemas"]["ComparisonEntryOut"][];
-            /** Gap Analysis */
-            gap_analysis: {
-                [key: string]: components["schemas"]["MetricGapAnalysisOut"] | null;
-            };
-            /** Calculations */
-            calculations: components["schemas"]["CalculationOut"][];
-        };
-        /** ComparisonEntryOut */
-        ComparisonEntryOut: {
-            /** Calculation Id */
-            calculation_id: number;
-            /** Source Currency */
-            source_currency: string;
-            /** Rate Used */
-            rate_used: string | null;
-            /** Gross Amount */
-            gross_amount: string;
-            /** Total Compensation Amount */
-            total_compensation_amount: string;
-            /** Total Tax Amount */
-            total_tax_amount: string | null;
-            /** Net Amount */
-            net_amount: string | null;
-        };
-        /** ComparisonSummaryOut */
-        ComparisonSummaryOut: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Comparison Currency */
-            comparison_currency: string;
-            /**
-             * As Of Date
-             * Format: date
-             */
-            as_of_date: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Calculation Count */
-            calculation_count: number;
-        };
-        /** CompensationComponentIn */
-        CompensationComponentIn: {
-            component_type: components["schemas"]["ComponentType"];
-            /** Amount */
-            amount: number | string;
-            /** Currency Code */
-            currency_code: string;
-            /** Description */
-            description?: string | null;
-        };
-        /** CompensationInputCreate */
-        CompensationInputCreate: {
-            /** Country Code */
-            country_code: string;
-            /** Job Family Id */
-            job_family_id?: number | null;
-            /** Experience Level Id */
-            experience_level_id?: number | null;
-            /** Employment Type Id */
-            employment_type_id?: number | null;
-            /** Regime */
-            regime?: string | null;
-            /** Filing Status */
-            filing_status?: string | null;
-            /** Target Currency Code */
-            target_currency_code: string;
-            /** As Of Date */
-            as_of_date?: string | null;
-            /** Components */
-            components: components["schemas"]["CompensationComponentIn"][];
-        };
-        /**
-         * ComponentType
-         * @description A typed compensation line item. Composable rather than fixed columns
-         *     (base_salary, bonus, ...) — what counts as compensation varies by
-         *     country and employment type (13th-month pay, RSUs, housing allowances),
-         *     and retrofitting fixed columns later would be a real rewrite.
-         * @enum {string}
-         */
-        ComponentType: "base" | "bonus" | "equity" | "benefit" | "allowance";
-        /** CountryOut */
-        CountryOut: {
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            default_currency: components["schemas"]["CurrencyOut"];
-        };
-        /** CurrencyOut */
-        CurrencyOut: {
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Symbol */
-            symbol: string;
-        };
-        /**
-         * GeographicScope
-         * @description OEWS publishes national, state, and metropolitan estimates. Only
-         *     NATIONAL is ingested today because nothing in this app collects a
-         *     user's location (CompensationInput has country_id and no sub-national
-         *     field), so there is no honest way to pick a metro on the user's
-         *     behalf. STATE/METRO exist here now so adding them later is an
-         *     ingestion + UI change, not a migration.
-         * @enum {string}
-         */
-        GeographicScope: "national" | "state" | "metro";
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** HealthCheckResponse */
-        HealthCheckResponse: {
-            /** Status */
-            status: string;
-            /** Checks */
-            checks: {
-                [key: string]: string;
-            };
-        };
-        /**
-         * JobFamilyOut
-         * @description Exposed in Phase 10: the calculator form had no way to send a job
-         *     family (nothing ever fetched the list), so job_family_id was always
-         *     null and market context - which needs a family to map onto a
-         *     published occupation - could never appear for any real user.
-         */
-        JobFamilyOut: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string | null;
-        };
-        /** LoginRequest */
-        LoginRequest: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** Password */
-            password: string;
-        };
-        /** LogoutRequest */
-        LogoutRequest: {
-            /** Refresh Token */
-            refresh_token: string;
-        };
-        /**
-         * MarketContextOut
-         * @description Market context for one job family in one country.
-         *
-         *     `available` is an explicit field rather than being implied by an
-         *     empty list, and `unavailable_reason` is populated whenever it is
-         *     False. "We have no data for this" is a real, honest answer this
-         *     project states out loud (India is genuinely unsupported - see
-         *     README), not something a client should have to infer from silence.
-         */
-        MarketContextOut: {
-            /** Country Code */
-            country_code: string;
-            /** Job Family Id */
-            job_family_id: number;
-            /** Job Family Name */
-            job_family_name: string;
-            /** Available */
-            available: boolean;
-            /** Unavailable Reason */
-            unavailable_reason: string | null;
-            /** Occupations */
-            occupations: components["schemas"]["MarketOccupationOut"][];
-        };
-        /** MarketOccupationOut */
-        MarketOccupationOut: {
-            /** Taxonomy */
-            taxonomy: string;
-            /** External Code */
-            external_code: string;
-            /** External Label */
-            external_label: string;
-            match_quality: components["schemas"]["MatchQuality"];
-            /** Match Note */
-            match_note: string;
-            geographic_scope: components["schemas"]["GeographicScope"];
-            /** Area Name */
-            area_name: string;
-            /** Currency Code */
-            currency_code: string;
-            distribution: components["schemas"]["WageDistributionOut"];
-            /** Employment Count */
-            employment_count: number | null;
-            /** Reference Period Label */
-            reference_period_label: string;
-            /** Published Date */
-            published_date: string | null;
-            /** Source Name */
-            source_name: string;
-            /** Source Url */
-            source_url: string;
-            /** Methodology Note */
-            methodology_note: string;
-            /** Excludes Variable Compensation */
-            excludes_variable_compensation: boolean;
-            /** Wage Definition Note */
-            wage_definition_note: string;
-        };
-        /**
-         * MatchQuality
-         * @description How honestly an internal JobFamily maps onto an external
-         *     occupation code. Stored per-mapping and surfaced all the way to the
-         *     UI rather than hidden, because the quality genuinely varies and a
-         *     confident-looking number against the wrong occupation is worse than
-         *     no number at all.
-         *
-         *     Determined during Phase 10 research against the real SOC-2018 list -
-         *     not guessed. CLOSE means the external occupation substantially IS the
-         *     internal family. BROAD means the external bucket is materially wider
-         *     than the family (or the family spans several dissimilar codes). POOR
-         *     means no good match exists and the nearest code means something
-         *     genuinely different - kept, labeled, and shown as such rather than
-         *     silently dropped or silently presented as if it were fine.
-         * @enum {string}
-         */
-        MatchQuality: "close" | "broad" | "poor";
-        /** MetricGapAnalysisOut */
-        MetricGapAnalysisOut: {
-            /** Leader Calculation Id */
-            leader_calculation_id: number;
-            /** Entries */
-            entries: components["schemas"]["MetricGapEntryOut"][];
-        };
-        /** MetricGapEntryOut */
-        MetricGapEntryOut: {
-            /** Calculation Id */
-            calculation_id: number;
-            /** Gap Absolute */
-            gap_absolute: string;
-            /** Gap Percent */
-            gap_percent: string | null;
-        };
-        /** PaginatedCalculationsOut */
-        PaginatedCalculationsOut: {
-            /** Items */
-            items: components["schemas"]["CalculationOut"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /** PaginatedComparisonsOut */
-        PaginatedComparisonsOut: {
-            /** Items */
-            items: components["schemas"]["ComparisonSummaryOut"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /** RefreshRequest */
-        RefreshRequest: {
-            /** Refresh Token */
-            refresh_token: string;
-        };
-        /** RegisterRequest */
-        RegisterRequest: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** Password */
-            password: string;
-        };
-        /** TaxBracketOut */
-        TaxBracketOut: {
-            component: components["schemas"]["TaxComponent"];
-            /** Lower Bound */
-            lower_bound: string;
-            /** Upper Bound */
-            upper_bound: string | null;
-            /** Rate */
-            rate: string;
-        };
-        /**
-         * TaxComponent
-         * @description What a TaxBracket row represents. Deliberately generic — new
-         *     components (a future country's own named levy) extend this enum rather
-         *     than requiring new tables or country-specific code paths.
-         * @enum {string}
-         */
-        TaxComponent: "income_tax" | "social_security" | "medicare" | "medicare_additional_surtax";
-        /** TaxRuleSetOut */
-        TaxRuleSetOut: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Regime */
-            regime: string | null;
-            /** Filing Status */
-            filing_status: string | null;
-            /** Standard Deduction */
-            standard_deduction: string | null;
-            /**
-             * Effective Date
-             * Format: date
-             */
-            effective_date: string;
-            /** End Date */
-            end_date: string | null;
-            /** Source Url */
-            source_url: string | null;
-            currency: components["schemas"]["CurrencyOut"];
-            /** Tax Brackets */
-            tax_brackets: components["schemas"]["TaxBracketOut"][];
-        };
-        /** TokenPairOut */
-        TokenPairOut: {
-            /** Access Token */
-            access_token: string;
-            /** Refresh Token */
-            refresh_token: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type: string;
-        };
-        /** UserOut */
-        UserOut: {
-            /** Id */
-            id: number;
-            /** Email */
-            email: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-        /**
-         * WageDistributionOut
-         * @description The published distribution. Named a distribution, not an
-         *     "estimate" or a "benchmark", because that is what the source
-         *     publishes and what the UI must show - a single confident-looking
-         *     number is precisely the misreading this phase is built to prevent.
-         */
-        WageDistributionOut: {
-            /** Percentile 10 */
-            percentile_10: string | null;
-            /** Percentile 25 */
-            percentile_25: string | null;
-            /** Percentile 50 */
-            percentile_50: string | null;
-            /** Percentile 75 */
-            percentile_75: string | null;
-            /** Percentile 90 */
-            percentile_90: string | null;
-            /** Mean Value */
-            mean_value: string | null;
-        };
+  schemas: {
+    /** AIInsightCreate */
+    AIInsightCreate: {
+      /** Calculation Id */
+      calculation_id?: number | null;
+      /** Comparison Id */
+      comparison_id?: number | null;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /** AIInsightOut */
+    AIInsightOut: {
+      /** Id */
+      id: number;
+      /** Request Id */
+      request_id: number;
+      /** Calculation Id */
+      calculation_id: number | null;
+      /** Comparison Id */
+      comparison_id: number | null;
+      /** Provider */
+      provider: string;
+      /** Model */
+      model: string;
+      /** Generated Text */
+      generated_text: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Cached */
+      cached: boolean;
+    };
+    /** AccessTokenOut */
+    AccessTokenOut: {
+      /** Access Token */
+      access_token: string;
+      /**
+       * Token Type
+       * @default bearer
+       */
+      token_type: string;
+    };
+    /** CalculationOut */
+    CalculationOut: {
+      /** Id */
+      id: number;
+      /** Compensation Input Id */
+      compensation_input_id: number;
+      /** User Id */
+      user_id: number | null;
+      /** Engine Version */
+      engine_version: string;
+      /** Gross Amount */
+      gross_amount: string;
+      /** Total Compensation Amount */
+      total_compensation_amount: string;
+      /** Tax Rule Set Id */
+      tax_rule_set_id: number | null;
+      /** Total Tax Amount */
+      total_tax_amount: string | null;
+      /** Net Amount */
+      net_amount: string | null;
+      /** Breakdown */
+      breakdown: {
+        [key: string]: unknown;
+      };
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Country Code */
+      country_code: string;
+      /** Job Family Id */
+      job_family_id: number | null;
+    };
+    /** ComparisonCreate */
+    ComparisonCreate: {
+      /** Name */
+      name: string;
+      /** Comparison Currency Code */
+      comparison_currency_code: string;
+      /** Calculation Ids */
+      calculation_ids: number[];
+      /** As Of Date */
+      as_of_date?: string | null;
+    };
+    /** ComparisonDetailOut */
+    ComparisonDetailOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Comparison Currency */
+      comparison_currency: string;
+      /**
+       * As Of Date
+       * Format: date
+       */
+      as_of_date: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Entries */
+      entries: components['schemas']['ComparisonEntryOut'][];
+      /** Gap Analysis */
+      gap_analysis: {
+        [key: string]: components['schemas']['MetricGapAnalysisOut'] | null;
+      };
+      /** Calculations */
+      calculations: components['schemas']['CalculationOut'][];
+    };
+    /** ComparisonEntryOut */
+    ComparisonEntryOut: {
+      /** Calculation Id */
+      calculation_id: number;
+      /** Source Currency */
+      source_currency: string;
+      /** Rate Used */
+      rate_used: string | null;
+      /** Gross Amount */
+      gross_amount: string;
+      /** Total Compensation Amount */
+      total_compensation_amount: string;
+      /** Total Tax Amount */
+      total_tax_amount: string | null;
+      /** Net Amount */
+      net_amount: string | null;
+    };
+    /** ComparisonSummaryOut */
+    ComparisonSummaryOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Comparison Currency */
+      comparison_currency: string;
+      /**
+       * As Of Date
+       * Format: date
+       */
+      as_of_date: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Calculation Count */
+      calculation_count: number;
+    };
+    /** CompensationComponentIn */
+    CompensationComponentIn: {
+      component_type: components['schemas']['ComponentType'];
+      /** Amount */
+      amount: number | string;
+      /** Currency Code */
+      currency_code: string;
+      /** Description */
+      description?: string | null;
+    };
+    /** CompensationInputCreate */
+    CompensationInputCreate: {
+      /** Country Code */
+      country_code: string;
+      /** Job Family Id */
+      job_family_id?: number | null;
+      /** Experience Level Id */
+      experience_level_id?: number | null;
+      /** Employment Type Id */
+      employment_type_id?: number | null;
+      /** Regime */
+      regime?: string | null;
+      /** Filing Status */
+      filing_status?: string | null;
+      /** Target Currency Code */
+      target_currency_code: string;
+      /** As Of Date */
+      as_of_date?: string | null;
+      /** Components */
+      components: components['schemas']['CompensationComponentIn'][];
+    };
+    /**
+     * ComponentType
+     * @description A typed compensation line item. Composable rather than fixed columns
+     *     (base_salary, bonus, ...) — what counts as compensation varies by
+     *     country and employment type (13th-month pay, RSUs, housing allowances),
+     *     and retrofitting fixed columns later would be a real rewrite.
+     * @enum {string}
+     */
+    ComponentType: 'base' | 'bonus' | 'equity' | 'benefit' | 'allowance';
+    /** CountryOut */
+    CountryOut: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      default_currency: components['schemas']['CurrencyOut'];
+    };
+    /** CurrencyOut */
+    CurrencyOut: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /** Symbol */
+      symbol: string;
+    };
+    /**
+     * GeographicScope
+     * @description OEWS publishes national, state, and metropolitan estimates. Only
+     *     NATIONAL is ingested today because nothing in this app collects a
+     *     user's location (CompensationInput has country_id and no sub-national
+     *     field), so there is no honest way to pick a metro on the user's
+     *     behalf. STATE/METRO exist here now so adding them later is an
+     *     ingestion + UI change, not a migration.
+     * @enum {string}
+     */
+    GeographicScope: 'national' | 'state' | 'metro';
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
+    };
+    /** HealthCheckResponse */
+    HealthCheckResponse: {
+      /** Status */
+      status: string;
+      /** Checks */
+      checks: {
+        [key: string]: string;
+      };
+    };
+    /**
+     * JobFamilyOut
+     * @description Exposed in Phase 10: the calculator form had no way to send a job
+     *     family (nothing ever fetched the list), so job_family_id was always
+     *     null and market context - which needs a family to map onto a
+     *     published occupation - could never appear for any real user.
+     */
+    JobFamilyOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string | null;
+    };
+    /** LoginRequest */
+    LoginRequest: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /** Password */
+      password: string;
+    };
+    /** LogoutRequest */
+    LogoutRequest: {
+      /** Refresh Token */
+      refresh_token: string;
+    };
+    /**
+     * MarketContextOut
+     * @description Market context for one job family in one country.
+     *
+     *     `available` is an explicit field rather than being implied by an
+     *     empty list, and `unavailable_reason` is populated whenever it is
+     *     False. "We have no data for this" is a real, honest answer this
+     *     project states out loud (India is genuinely unsupported - see
+     *     README), not something a client should have to infer from silence.
+     */
+    MarketContextOut: {
+      /** Country Code */
+      country_code: string;
+      /** Job Family Id */
+      job_family_id: number;
+      /** Job Family Name */
+      job_family_name: string;
+      /** Available */
+      available: boolean;
+      /** Unavailable Reason */
+      unavailable_reason: string | null;
+      /** Occupations */
+      occupations: components['schemas']['MarketOccupationOut'][];
+    };
+    /** MarketOccupationOut */
+    MarketOccupationOut: {
+      /** Taxonomy */
+      taxonomy: string;
+      /** External Code */
+      external_code: string;
+      /** External Label */
+      external_label: string;
+      match_quality: components['schemas']['MatchQuality'];
+      /** Match Note */
+      match_note: string;
+      geographic_scope: components['schemas']['GeographicScope'];
+      /** Area Name */
+      area_name: string;
+      /** Currency Code */
+      currency_code: string;
+      distribution: components['schemas']['WageDistributionOut'];
+      /** Employment Count */
+      employment_count: number | null;
+      /** Reference Period Label */
+      reference_period_label: string;
+      /** Published Date */
+      published_date: string | null;
+      /** Source Name */
+      source_name: string;
+      /** Source Url */
+      source_url: string;
+      /** Methodology Note */
+      methodology_note: string;
+      /** Excludes Variable Compensation */
+      excludes_variable_compensation: boolean;
+      /** Wage Definition Note */
+      wage_definition_note: string;
+    };
+    /**
+     * MatchQuality
+     * @description How honestly an internal JobFamily maps onto an external
+     *     occupation code. Stored per-mapping and surfaced all the way to the
+     *     UI rather than hidden, because the quality genuinely varies and a
+     *     confident-looking number against the wrong occupation is worse than
+     *     no number at all.
+     *
+     *     Determined during Phase 10 research against the real SOC-2018 list -
+     *     not guessed. CLOSE means the external occupation substantially IS the
+     *     internal family. BROAD means the external bucket is materially wider
+     *     than the family (or the family spans several dissimilar codes). POOR
+     *     means no good match exists and the nearest code means something
+     *     genuinely different - kept, labeled, and shown as such rather than
+     *     silently dropped or silently presented as if it were fine.
+     * @enum {string}
+     */
+    MatchQuality: 'close' | 'broad' | 'poor';
+    /** MetricGapAnalysisOut */
+    MetricGapAnalysisOut: {
+      /** Leader Calculation Id */
+      leader_calculation_id: number;
+      /** Entries */
+      entries: components['schemas']['MetricGapEntryOut'][];
+    };
+    /** MetricGapEntryOut */
+    MetricGapEntryOut: {
+      /** Calculation Id */
+      calculation_id: number;
+      /** Gap Absolute */
+      gap_absolute: string;
+      /** Gap Percent */
+      gap_percent: string | null;
+    };
+    /** PaginatedCalculationsOut */
+    PaginatedCalculationsOut: {
+      /** Items */
+      items: components['schemas']['CalculationOut'][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** PaginatedComparisonsOut */
+    PaginatedComparisonsOut: {
+      /** Items */
+      items: components['schemas']['ComparisonSummaryOut'][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** RefreshRequest */
+    RefreshRequest: {
+      /** Refresh Token */
+      refresh_token: string;
+    };
+    /** RegisterRequest */
+    RegisterRequest: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /** Password */
+      password: string;
+    };
+    /** TaxBracketOut */
+    TaxBracketOut: {
+      component: components['schemas']['TaxComponent'];
+      /** Lower Bound */
+      lower_bound: string;
+      /** Upper Bound */
+      upper_bound: string | null;
+      /** Rate */
+      rate: string;
+    };
+    /**
+     * TaxComponent
+     * @description What a TaxBracket row represents. Deliberately generic — new
+     *     components (a future country's own named levy) extend this enum rather
+     *     than requiring new tables or country-specific code paths.
+     * @enum {string}
+     */
+    TaxComponent: 'income_tax' | 'social_security' | 'medicare' | 'medicare_additional_surtax';
+    /** TaxRuleSetOut */
+    TaxRuleSetOut: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Regime */
+      regime: string | null;
+      /** Filing Status */
+      filing_status: string | null;
+      /** Standard Deduction */
+      standard_deduction: string | null;
+      /**
+       * Effective Date
+       * Format: date
+       */
+      effective_date: string;
+      /** End Date */
+      end_date: string | null;
+      /** Source Url */
+      source_url: string | null;
+      currency: components['schemas']['CurrencyOut'];
+      /** Tax Brackets */
+      tax_brackets: components['schemas']['TaxBracketOut'][];
+    };
+    /** TokenPairOut */
+    TokenPairOut: {
+      /** Access Token */
+      access_token: string;
+      /** Refresh Token */
+      refresh_token: string;
+      /**
+       * Token Type
+       * @default bearer
+       */
+      token_type: string;
+    };
+    /** UserOut */
+    UserOut: {
+      /** Id */
+      id: number;
+      /** Email */
+      email: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
+    /**
+     * WageDistributionOut
+     * @description The published distribution. Named a distribution, not an
+     *     "estimate" or a "benchmark", because that is what the source
+     *     publishes and what the UI must show - a single confident-looking
+     *     number is precisely the misreading this phase is built to prevent.
+     */
+    WageDistributionOut: {
+      /** Percentile 10 */
+      percentile_10: string | null;
+      /** Percentile 25 */
+      percentile_25: string | null;
+      /** Percentile 50 */
+      percentile_50: string | null;
+      /** Percentile 75 */
+      percentile_75: string | null;
+      /** Percentile 90 */
+      percentile_90: string | null;
+      /** Mean Value */
+      mean_value: string | null;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_api_v1_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthCheckResponse"];
-                };
-            };
-        };
+  health_api_v1_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    register_api_v1_auth_register_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
+        content: {
+          'application/json': components['schemas']['HealthCheckResponse'];
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+      };
     };
-    login_api_v1_auth_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenPairOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  register_api_v1_auth_register_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    refresh_api_v1_auth_refresh_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccessTokenOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RegisterRequest'];
+      };
     };
-    logout_api_v1_auth_logout_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogoutRequest"];
-            };
+        content: {
+          'application/json': components['schemas']['UserOut'];
         };
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    list_countries_api_v1_countries_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CountryOut"][];
-                };
-            };
-        };
+  };
+  login_api_v1_auth_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    list_job_families_api_v1_job_families_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobFamilyOut"][];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginRequest'];
+      };
     };
-    list_tax_rule_sets_api_v1_countries__country_code__tax_rule_sets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                country_code: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaxRuleSetOut"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['TokenPairOut'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    create_calculation_api_v1_calculations_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CompensationInputCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CalculationOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  refresh_api_v1_auth_refresh_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    list_my_calculations_api_v1_calculations_mine_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedCalculationsOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshRequest'];
+      };
     };
-    create_comparison_api_v1_comparisons_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ComparisonCreate"];
-            };
+        content: {
+          'application/json': components['schemas']['AccessTokenOut'];
         };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ComparisonDetailOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
     };
-    list_my_comparisons_api_v1_comparisons_mine_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedComparisonsOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  logout_api_v1_auth_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    get_comparison_api_v1_comparisons__comparison_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                comparison_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ComparisonDetailOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LogoutRequest'];
+      };
     };
-    create_or_get_insight_api_v1_ai_insights_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AIInsightCreate"];
-            };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AIInsightOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
     };
-    get_market_context_api_v1_market_context_get: {
-        parameters: {
-            query: {
-                job_family_id: number;
-                country_code: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MarketContextOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  };
+  list_countries_api_v1_countries_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CountryOut'][];
+        };
+      };
+    };
+  };
+  list_job_families_api_v1_job_families_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobFamilyOut'][];
+        };
+      };
+    };
+  };
+  list_tax_rule_sets_api_v1_countries__country_code__tax_rule_sets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        country_code: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TaxRuleSetOut'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_calculation_api_v1_calculations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CompensationInputCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CalculationOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_my_calculations_api_v1_calculations_mine_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedCalculationsOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_comparison_api_v1_comparisons_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComparisonCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComparisonDetailOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_my_comparisons_api_v1_comparisons_mine_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedComparisonsOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_comparison_api_v1_comparisons__comparison_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        comparison_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComparisonDetailOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_or_get_insight_api_v1_ai_insights_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AIInsightCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIInsightOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_market_context_api_v1_market_context_get: {
+    parameters: {
+      query: {
+        job_family_id: number;
+        country_code: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MarketContextOut'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
 }

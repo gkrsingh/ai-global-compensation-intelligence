@@ -264,3 +264,33 @@ def test_provider_is_usable_as_a_context_manager_and_closes_its_client() -> None
         provider.fetch_national_wages("151252")
 
     assert client.is_closed
+
+
+def test_year_range_defaults_to_the_current_calendar_year_when_not_injected() -> None:
+    """current_year exists purely so tests aren't coupled to the real
+    clock; production passes nothing. That default branch would otherwise
+    never be exercised, leaving the only code path production actually
+    uses untested.
+    """
+    from datetime import date
+
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={}))
+    provider = BlsOewsProvider(http_client=httpx.Client(transport=transport))
+    start, end = provider._year_range()
+
+    assert end == date.today().year
+    assert start < end
+
+
+def test_a_series_entry_without_an_id_is_skipped_rather_than_crashing() -> None:
+    """Defensive against a malformed response: a series block with no
+    seriesID cannot be attributed to any field, so it is ignored rather
+    than raising and losing the rest of a usable response.
+    """
+    payload = _series_payload(_REAL_15_1252)
+    payload["Results"]["series"].append({"data": [{"year": "2025", "value": "1"}]})
+
+    provider = _provider_with_handler(lambda request: httpx.Response(200, json=payload))
+    wages = provider.fetch_national_wages("151252")
+
+    assert wages.percentile_50 == Decimal("135980")

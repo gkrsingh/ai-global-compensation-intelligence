@@ -279,10 +279,7 @@ describe('ResultsView', () => {
     // honest way to map a missing one onto a published occupation -
     // so the panel is absent rather than guessing or rendering empty.
     render(
-      <ResultsView
-        calculation={{ ...US_CALCULATION, job_family_id: null }}
-        onReset={vi.fn()}
-      />,
+      <ResultsView calculation={{ ...US_CALCULATION, job_family_id: null }} onReset={vi.fn()} />,
     );
 
     expect(screen.queryByText('Market context')).not.toBeInTheDocument();
@@ -300,9 +297,7 @@ describe('ResultsView', () => {
       },
     });
 
-    render(
-      <ResultsView calculation={{ ...US_CALCULATION, job_family_id: 1 }} onReset={vi.fn()} />,
-    );
+    render(<ResultsView calculation={{ ...US_CALCULATION, job_family_id: 1 }} onReset={vi.fn()} />);
 
     expect(await screen.findByText('Market context')).toBeInTheDocument();
   });

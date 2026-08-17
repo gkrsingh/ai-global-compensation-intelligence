@@ -77,7 +77,8 @@ function OccupationCard({ occupation }: { occupation: MarketOccupationOut }) {
 
       <table className="market-distribution">
         <caption>
-          Published wage distribution &mdash; {occupation.area_name}, {occupation.reference_period_label}
+          Published wage distribution &mdash; {occupation.area_name},{' '}
+          {occupation.reference_period_label}
         </caption>
         <tbody>
           {points.map((point) => (
