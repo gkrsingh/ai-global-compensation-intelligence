@@ -4,7 +4,9 @@ import {
   ApiError,
   fetchMarketContext,
   type MarketContextOut,
+  type MarketEntryOut,
   type MarketOccupationOut,
+  type MarketSourceOut,
 } from '../../api/client';
 import { friendlyErrorLines } from '../../api/errors';
 
@@ -25,12 +27,11 @@ const MATCH_QUALITY_LABEL: Record<string, string> = {
 };
 
 // Deliberately NOT the calculator's formatCurrency, for two reasons.
-// Whole units only: OEWS annual figures are already rounded to the
-// nearest dollar by BLS, and for many occupations they are derived
-// (hourly x 2,080) rather than surveyed, so rendering "$135,980.00"
-// would manufacture two digits of precision the source does not have.
-// And keeping a separate formatter means a market estimate can never
-// accidentally acquire the exact visual form of a computed figure.
+// Whole units only: these figures are already rounded by their sources
+// and, in the survey's case, converted between currencies, so cents
+// would manufacture precision the data does not have. And keeping a
+// separate formatter means a market estimate can never accidentally
+// acquire the exact visual form of a computed figure.
 function formatEstimate(amount: string | null, currencyCode: string): string {
   if (amount === null) return 'Not published';
   const value = Number(amount);
@@ -42,32 +43,63 @@ function formatEstimate(amount: string | null, currencyCode: string): string {
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    // Intl throws on an unrecognized ISO 4217 code - fall back to plain
-    // text rather than crash the panel over a formatting detail.
     return `${Math.round(value)} ${currencyCode}`;
   }
 }
 
-function OccupationCard({ occupation }: { occupation: MarketOccupationOut }) {
-  const { distribution: d, currency_code: currency } = occupation;
-  const quality = occupation.match_quality;
+function entryLabel(entry: MarketEntryOut): string {
+  // Years as measured, never relabelled to a seniority title - no source
+  // publishes that mapping.
+  return entry.experience_band_label ?? 'All experience levels';
+}
 
-  // Every published point, in order, so the reader sees a spread rather
-  // than one number. A percentile the source suppressed renders as "Not
-  // published" - never as zero, and never quietly dropped, which would
-  // make the distribution look more complete than it is.
-  const points: { label: string; value: string | null }[] = [
-    { label: '10th percentile', value: d.percentile_10 },
-    { label: '25th percentile', value: d.percentile_25 },
-    { label: 'Median', value: d.percentile_50 },
-    { label: '75th percentile', value: d.percentile_75 },
-    { label: '90th percentile', value: d.percentile_90 },
+function DistributionRow({ entry, currency }: { entry: MarketEntryOut; currency: string }) {
+  if (entry.suppressed) {
+    return (
+      <tr className="market-suppressed-row">
+        <th scope="row">{entryLabel(entry)}</th>
+        <td colSpan={5} className="market-value-missing">
+          Insufficient sample
+          {entry.sample_size !== null ? ` (only ${entry.sample_size} responses)` : ''} &mdash; not
+          published
+        </td>
+      </tr>
+    );
+  }
+
+  const d = entry.distribution;
+  const cells = [
+    d.percentile_10,
+    d.percentile_25,
+    d.percentile_50,
+    d.percentile_75,
+    d.percentile_90,
   ];
+
+  return (
+    <tr>
+      <th scope="row">
+        {entryLabel(entry)}
+        {entry.sample_size !== null && (
+          <span className="market-sample"> n={entry.sample_size.toLocaleString('en-US')}</span>
+        )}
+      </th>
+      {cells.map((value, index) => (
+        <td key={index} className={value === null ? 'market-value-missing' : 'market-value'}>
+          {formatEstimate(value, currency)}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function OccupationCard({ occupation }: { occupation: MarketOccupationOut }) {
+  const quality = occupation.match_quality;
 
   return (
     <article className="market-occupation">
       <header className="market-occupation-header">
-        <h4>{occupation.external_label}</h4>
+        <h5>{occupation.external_label}</h5>
         <span className={`market-match market-match-${quality}`}>
           {MATCH_QUALITY_LABEL[quality] ?? quality}
         </span>
@@ -75,70 +107,96 @@ function OccupationCard({ occupation }: { occupation: MarketOccupationOut }) {
 
       <p className="market-match-note">{occupation.match_note}</p>
 
-      <table className="market-distribution">
-        <caption>
-          Published wage distribution &mdash; {occupation.area_name},{' '}
-          {occupation.reference_period_label}
-        </caption>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.label}>
-              <th scope="row">{point.label}</th>
-              <td className={point.value === null ? 'market-value-missing' : 'market-value'}>
-                {formatEstimate(point.value, currency)}
-              </td>
+      <div className="market-table-scroll">
+        <table className="market-distribution">
+          <caption>Published wage distribution &mdash; {occupation.area_name}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Experience</th>
+              <th scope="col">10th</th>
+              <th scope="col">25th</th>
+              <th scope="col">Median</th>
+              <th scope="col">75th</th>
+              <th scope="col">90th</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {occupation.entries.map((entry) => (
+              <DistributionRow
+                key={entry.experience_band_label ?? 'all'}
+                entry={entry}
+                currency={occupation.currency_code}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <dl className="market-provenance">
-        <div>
-          <dt>Source</dt>
-          <dd>
-            <a href={occupation.source_url} target="_blank" rel="noopener noreferrer">
-              {occupation.source_name}
-            </a>
-          </dd>
-        </div>
-        <div>
-          <dt>Occupation code</dt>
-          <dd>
-            {occupation.taxonomy} {occupation.external_code}
-          </dd>
-        </div>
-        <div>
-          <dt>Collected</dt>
-          <dd>
-            {occupation.reference_period_label}
-            {occupation.published_date ? ` (published ${occupation.published_date})` : ''}
-          </dd>
-        </div>
-        <div>
-          <dt>Geographic scope</dt>
-          <dd>{occupation.area_name}</dd>
-        </div>
-        {occupation.employment_count !== null && (
-          <div>
-            <dt>Workers in estimate</dt>
-            <dd>{occupation.employment_count.toLocaleString('en-US')}</dd>
-          </div>
-        )}
-      </dl>
-
-      <p className="market-methodology">{occupation.methodology_note}</p>
+      <p className="market-occupation-code">
+        {occupation.taxonomy} &middot; {occupation.external_code}
+      </p>
     </article>
   );
 }
 
+function SourceSection({ source }: { source: MarketSourceOut }) {
+  return (
+    <section className="market-source">
+      <header className="market-source-header">
+        <h4>
+          <a href={source.source_url} target="_blank" rel="noopener noreferrer">
+            {source.source_name}
+          </a>
+        </h4>
+        <span className="market-source-period">
+          {source.reference_period_label}
+          {source.published_date ? ` · published ${source.published_date}` : ''}
+        </span>
+      </header>
+
+      {/* Prominent, above this source's numbers - never a footnote. The
+          case this exists for is the survey's India sample, which reads
+          high against the broad Indian market. */}
+      {source.representativeness_note && (
+        <div className="market-warning market-warning-representativeness" role="note">
+          <strong>How representative is this?</strong> {source.representativeness_note}
+        </div>
+      )}
+
+      {source.excludes_variable_compensation && (
+        <div className="market-warning" role="note">
+          <strong>These figures exclude bonuses and equity.</strong> They cover base pay,
+          commissions and production bonuses only. If your offer includes bonus or equity, compare
+          those separately, and compare against your <strong>gross</strong> pay before tax, never
+          your net.
+        </div>
+      )}
+
+      {source.occupations.map((occupation) => (
+        <OccupationCard key={occupation.external_code} occupation={occupation} />
+      ))}
+
+      <p className="market-methodology">
+        <strong>What this counts as pay:</strong> {source.wage_definition_note}
+      </p>
+      <p className="market-methodology">{source.methodology_note}</p>
+    </section>
+  );
+}
+
 /**
- * Market context is a STATISTICAL ESTIMATE from a survey, not a computed
- * figure. That distinction is carried by construction here, not by a
- * disclaimer someone has to read: this panel has its own container and
- * accent (.market-context-panel in index.css), renders a distribution
- * rather than a single value, labels every figure as published rather
- * than calculated, and never appears inside the calculation's own
- * <dl>/results markup.
+ * Market context is a STATISTICAL ESTIMATE from a survey or a
+ * statistical agency, not a computed figure. That distinction is carried
+ * by construction: this panel has its own container and accent, renders
+ * distributions rather than single values, and never appears inside the
+ * calculation's own results markup.
+ *
+ * Since Phase 11 there can be more than one source for the same role and
+ * country, and they disagree - BLS measures employer-reported base pay,
+ * the survey measures self-reported total compensation. Both are shown,
+ * each under its own heading with its own methodology, and they are
+ * NEVER averaged or reconciled: combining two differently-methodologied
+ * figures would produce a number neither source reported.
  */
 export function MarketContextPanel({ jobFamilyId, countryCode }: MarketContextPanelProps) {
   const [state, setState] = useState<PanelState>({ kind: 'loading' });
@@ -163,19 +221,16 @@ export function MarketContextPanel({ jobFamilyId, countryCode }: MarketContextPa
     };
   }, [jobFamilyId, countryCode]);
 
-  // Defensive `?? []`: this panel is embedded inside the results view, so
-  // a malformed or partial payload must degrade to "nothing to show"
-  // rather than throwing and taking the user's actual calculation down
-  // with it. Market context is strictly supplementary - it should never
-  // be able to break the deterministic result it sits beside.
-  const occupations = state.kind === 'loaded' ? (state.context.occupations ?? []) : [];
-  const excludesVariablePay = occupations.some((o) => o.excludes_variable_compensation);
+  // Defensive `?? []`: this panel sits inside the results view, so a
+  // malformed payload must degrade to "nothing to show" rather than
+  // throwing and taking the user's actual calculation down with it.
+  const sources = state.kind === 'loaded' ? (state.context.sources ?? []) : [];
 
   return (
     <section className="market-context-panel">
       <h3>Market context</h3>
       <p className="market-context-intro">
-        Published government wage statistics for comparable occupations. These are survey{' '}
+        Published wage statistics for comparable occupations. These are survey{' '}
         <strong>estimates</strong>, not part of your calculation above &mdash; nothing here is
         computed from your figures.
       </p>
@@ -194,36 +249,31 @@ export function MarketContextPanel({ jobFamilyId, countryCode }: MarketContextPa
 
       {state.kind === 'loaded' && !state.context.available && (
         // Stated out loud rather than rendering nothing: silence would be
-        // indistinguishable from a loading failure, and "we have no
-        // citable source for this country" is a real, honest answer.
+        // indistinguishable from a loading failure.
         <p className="market-unavailable" role="status">
           {state.context.unavailable_reason}
         </p>
       )}
 
-      {state.kind === 'loaded' && state.context.available && occupations.length > 0 && (
+      {state.kind === 'loaded' && state.context.available && sources.length > 0 && (
         <>
-          {excludesVariablePay && (
-            // Deliberately ABOVE the numbers and styled as a warning, not
-            // a footnote. For technology roles, bonus and equity are
-            // routinely 20-50% of total compensation, so silently
-            // comparing a total-comp offer against a base-pay-only market
-            // figure would actively mislead someone mid-negotiation.
-            <div className="market-warning" role="note">
-              <strong>These figures exclude bonuses and equity.</strong> They cover base pay,
-              commissions and production bonuses only &mdash; not annual bonuses, stock, or
-              benefits. If your offer includes bonus or equity, compare those separately, and
-              compare against your <strong>gross</strong> pay before tax, never your net.
-            </div>
+          {sources.length > 1 && (
+            <p className="market-multi-source" role="note">
+              <strong>{sources.length} sources are shown below, separately.</strong> They measure
+              different things and will not agree &mdash; they are never combined or averaged,
+              because an average of two different methodologies would be a number neither source
+              reported. Read each on its own terms.
+            </p>
           )}
 
-          {occupations.map((occupation) => (
-            <OccupationCard key={occupation.external_code} occupation={occupation} />
+          {sources.map((source) => (
+            <SourceSection key={source.source_key} source={source} />
           ))}
 
           <p className="market-context-disclaimer">
-            No seniority or specialisation breakdown is published for these occupations &mdash;
-            locate yourself within the range rather than reading any percentile as a level.
+            Experience bands are years of professional experience as reported to the source. They
+            are not job levels &mdash; no source publishes a mapping from years to titles like
+            &ldquo;senior&rdquo;, so none is implied here.
           </p>
         </>
       )}

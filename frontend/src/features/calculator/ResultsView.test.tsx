@@ -293,7 +293,7 @@ describe('ResultsView', () => {
         job_family_name: 'Software Engineering',
         available: false,
         unavailable_reason: 'No wage data has been ingested yet.',
-        occupations: [],
+        sources: [],
       },
     });
 

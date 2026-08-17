@@ -297,7 +297,8 @@ export interface paths {
     };
     /**
      * Get Market Context
-     * @description Published market wage distributions for a job family in a country.
+     * @description Published market wage distributions for a job family in a country,
+     *     grouped by source.
      *
      *     Returns 200 with available=False and a stated reason when there is
      *     genuinely no data, rather than 404 or an empty list: "this country
@@ -585,11 +586,10 @@ export interface components {
      * MarketContextOut
      * @description Market context for one job family in one country.
      *
-     *     `available` is an explicit field rather than being implied by an
-     *     empty list, and `unavailable_reason` is populated whenever it is
-     *     False. "We have no data for this" is a real, honest answer this
-     *     project states out loud (India is genuinely unsupported - see
-     *     README), not something a client should have to infer from silence.
+     *     `available` is an explicit field rather than being implied by an empty
+     *     list, and `unavailable_reason` is populated whenever it is False.
+     *     "We have no data for this" is a real answer this project states out
+     *     loud, not something a client should have to infer from silence.
      */
     MarketContextOut: {
       /** Country Code */
@@ -602,8 +602,34 @@ export interface components {
       available: boolean;
       /** Unavailable Reason */
       unavailable_reason: string | null;
-      /** Occupations */
-      occupations: components['schemas']['MarketOccupationOut'][];
+      /** Sources */
+      sources: components['schemas']['MarketSourceOut'][];
+    };
+    /**
+     * MarketEntryOut
+     * @description One row of figures for an occupation: either the figure across all
+     *     experience levels (experience_band_label is null) or one
+     *     years-of-experience band.
+     *
+     *     Bands are reported as MEASURED - "6-10 yrs", never relabelled
+     *     "Senior". No source publishes that mapping, so asserting it would be
+     *     an inference, the same line Phase 10 held when it refused to read a
+     *     wage percentile as a seniority level.
+     */
+    MarketEntryOut: {
+      /** Experience Band Label */
+      experience_band_label: string | null;
+      /** Experience Min Years */
+      experience_min_years: number | null;
+      /** Experience Max Years */
+      experience_max_years: number | null;
+      /** Sample Size */
+      sample_size: number | null;
+      /** Employment Count */
+      employment_count: number | null;
+      distribution: components['schemas']['WageDistributionOut'];
+      /** Suppressed */
+      suppressed: boolean;
     };
     /** MarketOccupationOut */
     MarketOccupationOut: {
@@ -621,23 +647,37 @@ export interface components {
       area_name: string;
       /** Currency Code */
       currency_code: string;
-      distribution: components['schemas']['WageDistributionOut'];
-      /** Employment Count */
-      employment_count: number | null;
-      /** Reference Period Label */
-      reference_period_label: string;
-      /** Published Date */
-      published_date: string | null;
+      /** Entries */
+      entries: components['schemas']['MarketEntryOut'][];
+    };
+    /**
+     * MarketSourceOut
+     * @description One source's view of a job family, with its own provenance.
+     *
+     *     Source-level metadata sits here rather than being repeated on every
+     *     occupation, but it still wraps them - so it cannot be skipped.
+     */
+    MarketSourceOut: {
+      /** Source Key */
+      source_key: string;
       /** Source Name */
       source_name: string;
       /** Source Url */
       source_url: string;
+      /** Reference Period Label */
+      reference_period_label: string;
+      /** Published Date */
+      published_date: string | null;
       /** Methodology Note */
       methodology_note: string;
       /** Excludes Variable Compensation */
       excludes_variable_compensation: boolean;
       /** Wage Definition Note */
       wage_definition_note: string;
+      /** Representativeness Note */
+      representativeness_note: string | null;
+      /** Occupations */
+      occupations: components['schemas']['MarketOccupationOut'][];
     };
     /**
      * MatchQuality
@@ -795,7 +835,7 @@ export interface components {
      * @description The published distribution. Named a distribution, not an
      *     "estimate" or a "benchmark", because that is what the source
      *     publishes and what the UI must show - a single confident-looking
-     *     number is precisely the misreading this phase is built to prevent.
+     *     number is precisely the misreading this feature is built to prevent.
      */
     WageDistributionOut: {
       /** Percentile 10 */

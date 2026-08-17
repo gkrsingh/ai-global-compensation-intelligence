@@ -378,8 +378,10 @@ def seed_all(session: Session) -> None:
     # bridge), so they belong in the same idempotent seed pass rather
     # than needing a separate command a deployer could forget.
     from app.market_data.seed import seed_us_occupation_mappings
+    from app.market_data.seed_survey import seed_survey_occupation_mappings
 
     seed_us_occupation_mappings(session)
+    seed_survey_occupation_mappings(session)
     session.commit()
 
 

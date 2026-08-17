@@ -1,9 +1,15 @@
 """Integration tests for GET /market-context.
 
-The behaviour most worth pinning down here is not the happy path but the
-ABSENCE path: this project's whole stance on market data is that "we have
-nothing citable for this" must be said out loud, with a reason, rather
-than returned as an empty list the UI could quietly render as nothing.
+Two behaviours matter most here, and neither is the happy path.
+
+The ABSENCE path: this project's stance is that "we have nothing citable
+for this" must be said out loud, with a reason, rather than returned as an
+empty list a UI could quietly render as blank space.
+
+The MULTI-SOURCE path (Phase 11): two sources now cover the same US roles
+and genuinely disagree, because they measure different things. They must
+arrive separately, each with its own provenance, and must never be merged
+or averaged into a figure neither source reported.
 """
 
 from datetime import date
@@ -42,8 +48,12 @@ def _get(
     return {"status": response.status_code, "body": response.json()}
 
 
+def _source(body: dict[str, Any], source_key: str) -> dict[str, Any] | None:
+    return next((s for s in body["sources"] if s["source_key"] == source_key), None)
+
+
 def test_returns_the_distribution_with_provenance_for_a_mapped_family(
-    client: TestClient, db_session: Session, software_family: JobFamily, ingested_market_data: None
+    client: TestClient, software_family: JobFamily, ingested_market_data: None
 ) -> None:
     result = _get(client, software_family.id)
 
@@ -51,73 +61,148 @@ def test_returns_the_distribution_with_provenance_for_a_mapped_family(
     body = result["body"]
     assert body["available"] is True
     assert body["unavailable_reason"] is None
-    assert body["occupations"], "seeded mappings + ingested data should yield occupations"
 
-    top = body["occupations"][0]
-    # Best-quality match leads, so the most defensible figure is first.
+    bls = _source(body, "bls_oews")
+    assert bls is not None
+    # Provenance lives on the source that WRAPS the occupations, so a
+    # client cannot reach a figure without passing through it.
+    assert bls["source_name"]
+    assert bls["source_url"]
+    assert bls["methodology_note"]
+    assert bls["reference_period_label"].startswith("May ")
+    assert bls["excludes_variable_compensation"] is True
+    assert "equity" in bls["wage_definition_note"].lower()
+
+    top = bls["occupations"][0]
     assert top["match_quality"] == "close"
     assert top["external_code"] == "151252"
     assert top["external_label"] == "Software Developers"
-
-    # A distribution, never a single number.
-    distribution = top["distribution"]
-    assert distribution["percentile_50"] is not None
-    assert distribution["percentile_10"] is not None
-    assert distribution["percentile_90"] is not None
-
-    # Provenance and caveats travel WITH the figures, in the same object.
-    assert top["source_name"]
-    assert top["source_url"]
-    assert top["methodology_note"]
-    assert top["reference_period_label"].startswith("May ")
-    assert top["excludes_variable_compensation"] is True
-    assert "equity" in top["wage_definition_note"].lower()
     assert top["match_note"]
 
+    entry = top["entries"][0]
+    assert entry["distribution"]["percentile_50"] is not None
+    assert entry["distribution"]["percentile_10"] is not None
+    # BLS publishes finished estimates, not microdata: it has an
+    # employment estimate and no sample count, and the two are never
+    # conflated.
+    assert entry["sample_size"] is None
+    assert entry["employment_count"] is not None
+    assert entry["suppressed"] is False
 
-def test_a_poorly_matched_family_is_returned_but_labeled_poor(
-    client: TestClient, db_session: Session, ingested_market_data: None
+
+def test_two_sources_for_the_same_role_arrive_separately_and_are_never_merged(
+    client: TestClient,
+    software_family: JobFamily,
+    ingested_market_data: None,
+    ingested_survey_data: None,
 ) -> None:
-    """Product Management has no SOC-2018 equivalent at all. The mapping
-    is deliberately kept and labeled rather than dropped - but it must
-    never arrive looking as trustworthy as a close match.
+    """The core Phase 11 guarantee. BLS and the survey disagree because
+    they measure different things (employer-reported base pay vs
+    self-reported total compensation). Both must be present, attributed,
+    and unreconciled - an average of the two would be a number neither
+    source reported.
     """
-    family = db_session.scalar(select(JobFamily).where(JobFamily.name == "Product Management"))
-    assert family is not None
+    body = _get(client, software_family.id)["body"]
 
-    result = _get(client, family.id)
+    assert len(body["sources"]) == 2
+    bls = _source(body, "bls_oews")
+    survey = _source(body, "stackoverflow_survey")
+    assert bls is not None and survey is not None
 
-    assert result["status"] == 200
-    occupations = result["body"]["occupations"]
-    assert occupations
-    assert all(o["match_quality"] == "poor" for o in occupations)
-    assert "no product management occupation" in occupations[0]["match_note"].lower()
+    bls_median = Decimal(bls["occupations"][0]["entries"][0]["distribution"]["percentile_50"])
+    survey_occ = next(
+        o for o in survey["occupations"] if o["external_code"] == "Developer, full-stack"
+    )
+    survey_median = Decimal(survey_occ["entries"][0]["distribution"]["percentile_50"])
+
+    # They really do differ - if they ever became equal this test would
+    # stop proving anything, so assert the premise too.
+    assert bls_median != survey_median
+
+    # Each source carries its own methodology, and they say different
+    # things about what counts as pay.
+    assert bls["excludes_variable_compensation"] is True
+    assert survey["excludes_variable_compensation"] is False
+    assert bls["methodology_note"] != survey["methodology_note"]
+
+    # Official statistics are presented first. Presentation order only -
+    # not a claim that either source is more correct.
+    assert body["sources"][0]["source_key"] == "bls_oews"
 
 
-def test_a_country_with_no_coverage_says_so_explicitly(
-    client: TestClient, software_family: JobFamily
+def test_india_now_has_survey_market_data(
+    client: TestClient, software_family: JobFamily, ingested_survey_data: None
 ) -> None:
-    """India is genuinely unsupported (see README). The API must state
-    that with a reason rather than returning an empty list, which a UI
-    could render as blank space indistinguishable from a loading bug.
+    """The gap Phase 11 exists to close. India had no market data at all
+    after Phase 10; it now has real survey-derived figures, and they
+    arrive with the representativeness caveat attached.
     """
     result = _get(client, software_family.id, country_code="IN")
 
     assert result["status"] == 200
     body = result["body"]
-    assert body["available"] is False
-    assert body["occupations"] == []
-    assert body["unavailable_reason"]
-    assert "no market compensation data" in body["unavailable_reason"].lower()
+    assert body["available"] is True
+
+    survey = _source(body, "stackoverflow_survey")
+    assert survey is not None
+    assert survey["occupations"]
+
+    # The caveat the user specifically asked to be prominent: India's
+    # sample skews toward product-company developers and reads high.
+    assert survey["representativeness_note"] is not None
+    assert "not representative" in survey["representativeness_note"].lower()
+
+
+def test_experience_bands_are_reported_as_years_never_as_seniority_titles(
+    client: TestClient, software_family: JobFamily, ingested_survey_data: None
+) -> None:
+    """No source publishes a years-to-title mapping, so the API must not
+    imply one. Bands are years in, years out.
+    """
+    body = _get(client, software_family.id, country_code="IN")["body"]
+    survey = _source(body, "stackoverflow_survey")
+    assert survey is not None
+
+    pooled = next(o for o in survey["occupations"] if o["external_code"] == "ALL")
+    banded = [e for e in pooled["entries"] if e["experience_band_label"] is not None]
+    assert banded, "pooled experience breakdown should be present"
+
+    entry = banded[0]
+    assert entry["experience_band_label"] == "6-10 yrs"
+    assert entry["experience_min_years"] == 6
+    assert entry["experience_max_years"] == 10
+    # Not a level, and never described as one.
+    serialized = str(body).lower()
+    assert "senior" not in serialized
+    assert "junior" not in serialized
+
+
+def test_a_thin_cell_is_returned_as_suppressed_rather_than_omitted(
+    client: TestClient, software_family: JobFamily, ingested_survey_data: None
+) -> None:
+    """Below-threshold cells must remain VISIBLE with their sample size.
+    Dropping them would make a gap in the data indistinguishable from no
+    gap at all.
+    """
+    body = _get(client, software_family.id, country_code="ES")["body"]
+    survey = _source(body, "stackoverflow_survey")
+    assert survey is not None
+
+    thin = next(
+        o for o in survey["occupations"] if o["external_code"] == "Developer, front-end"
+    )
+    entry = thin["entries"][0]
+    assert entry["suppressed"] is True
+    assert entry["sample_size"] == 12
+    # Withheld, never zeroed.
+    assert entry["distribution"]["percentile_50"] is None
+    assert entry["distribution"]["percentile_10"] is None
 
 
 def test_unknown_country_is_a_404_not_an_availability_answer(
     client: TestClient, software_family: JobFamily
 ) -> None:
-    """A coverage gap and a caller error are different things: 'we have
-    no data for India' is a real answer, 'ZZ is not a country' is a bad
-    request.
-    """
+    """A coverage gap and a caller error are different things."""
     result = _get(client, software_family.id, country_code="ZZ")
 
     assert result["status"] == 404
@@ -131,29 +216,37 @@ def test_unknown_job_family_is_a_404(client: TestClient) -> None:
     assert result["body"]["error"]["code"] == "unknown_job_family"
 
 
+def test_a_family_with_no_mapping_says_so_distinctly(
+    client: TestClient, db_session: Session, ingested_market_data: None
+) -> None:
+    """Sales has no counterpart in either taxonomy - SOC covers it but
+    this project maps no sales occupations for it in every country, and a
+    developer survey has none at all. The response must name that
+    specific situation rather than implying the country is unsupported.
+    """
+    family = db_session.scalar(select(JobFamily).where(JobFamily.name == "Sales"))
+    assert family is not None
+
+    result = _get(client, family.id, country_code="ES")
+
+    assert result["status"] == 200
+    body = result["body"]
+    assert body["available"] is False
+    assert body["sources"] == []
+    assert body["unavailable_reason"]
+
+
 def test_a_family_mapped_but_with_no_ingested_data_says_so_distinctly(
     client: TestClient, db_session: Session
 ) -> None:
-    """Third distinct absence case: the family IS mapped, but nothing has
-    been ingested for it. Must not be conflated with 'this country is
-    unsupported', which would misdescribe a purely operational gap as a
-    permanent one.
+    """The family IS mapped, but nothing has been ingested for it. Must
+    not be conflated with 'this country is unsupported', which would
+    misdescribe an operational gap as a permanent one.
     """
     country = db_session.scalar(select(Country).where(Country.code == "US"))
     family = db_session.scalar(select(JobFamily).where(JobFamily.name == "Design"))
     assert country is not None and family is not None
 
-    mapping = JobFamilyOccupationMapping(
-        job_family_id=family.id,
-        country_id=country.id,
-        taxonomy=TAXONOMY_SOC_2018,
-        external_code="999998",
-        external_label="Fictional Uningested Occupation",
-        match_quality=MatchQuality.BROAD,
-        match_note="Test-only mapping with deliberately no ingested data.",
-    )
-    # Remove the real Design mappings for the duration of this test so the
-    # only mapping left is the uningested one.
     real_design = list(
         db_session.scalars(
             select(JobFamilyOccupationMapping).where(
@@ -164,6 +257,7 @@ def test_a_family_mapped_but_with_no_ingested_data_says_so_distinctly(
     )
     saved = [
         {
+            "taxonomy": m.taxonomy,
             "external_code": m.external_code,
             "external_label": m.external_label,
             "match_quality": m.match_quality,
@@ -173,6 +267,15 @@ def test_a_family_mapped_but_with_no_ingested_data_says_so_distinctly(
     ]
     for m in real_design:
         db_session.delete(m)
+    mapping = JobFamilyOccupationMapping(
+        job_family_id=family.id,
+        country_id=country.id,
+        taxonomy=TAXONOMY_SOC_2018,
+        external_code="999998",
+        external_label="Fictional Uningested Occupation",
+        match_quality=MatchQuality.BROAD,
+        match_note="Test-only mapping with deliberately no ingested data.",
+    )
     db_session.add(mapping)
     db_session.commit()
 
@@ -187,8 +290,7 @@ def test_a_family_mapped_but_with_no_ingested_data_says_so_distinctly(
         for data in saved:
             db_session.add(
                 JobFamilyOccupationMapping(
-                    job_family_id=family.id, country_id=country.id,
-                    taxonomy=TAXONOMY_SOC_2018, **data
+                    job_family_id=family.id, country_id=country.id, **data
                 )
             )
         db_session.commit()
@@ -230,28 +332,34 @@ def test_a_percentile_the_source_suppressed_stays_null_in_the_response(
         percentile_90=None,
         mean_value=None,
         employment_count=None,
+        sample_size=None,
+        experience_band_label=None,
+        experience_min_years=None,
+        experience_max_years=None,
         reference_period=date(2025, 5, 1),
         reference_period_label="May 2025",
         published_date=date(2026, 5, 15),
+        source_key="bls_oews",
         source_name="Test Source",
         source_url="https://example.invalid/",
         methodology_note="Test methodology note.",
         excludes_variable_compensation=True,
         wage_definition_note="Test wage definition, excludes equity.",
+        representativeness_note=None,
     )
     db_session.add_all([mapping, point])
     db_session.commit()
 
     try:
-        result = _get(client, family.id)
-        assert result["status"] == 200
-        match = next(
-            o for o in result["body"]["occupations"] if o["external_code"] == "999997"
-        )
-        assert match["distribution"]["percentile_50"] == "100000.00"
-        assert match["distribution"]["percentile_10"] is None
-        assert match["distribution"]["percentile_90"] is None
-        assert match["distribution"]["mean_value"] is None
+        body = _get(client, family.id)["body"]
+        source = _source(body, "bls_oews")
+        assert source is not None
+        match = next(o for o in source["occupations"] if o["external_code"] == "999997")
+        distribution = match["entries"][0]["distribution"]
+        assert distribution["percentile_50"] == "100000.00"
+        assert distribution["percentile_10"] is None
+        assert distribution["percentile_90"] is None
+        assert distribution["mean_value"] is None
     finally:
         db_session.delete(point)
         db_session.delete(mapping)

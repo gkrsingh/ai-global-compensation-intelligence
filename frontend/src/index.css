@@ -227,10 +227,84 @@ fieldset {
   font-size: 0.9rem;
 }
 
+/* Phase 11: each source gets its own visually bounded block, so two
+   sources that disagree can never read as one merged set of numbers. */
+.market-source {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.85rem;
+  margin: 0 0 1.1rem;
+}
+
+.market-source-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.market-source-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.market-source-period {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+/* Shown when more than one source exists - states up front that they are
+   not reconciled, before the reader starts comparing numbers. */
+.market-multi-source {
+  border-left: 4px solid #b45309;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+}
+
+/* Representativeness gets the strongest treatment available, matching
+   the equity/bonus warning rather than sitting below it in the
+   hierarchy - a sample that reads high is exactly as misleading as a
+   figure that omits half the package. */
+.market-warning-representativeness {
+  border-left-color: #b91c1c;
+  background: rgba(185, 28, 28, 0.08);
+}
+
 .market-occupation {
   border-top: 1px solid var(--border);
   padding-top: 1rem;
   margin-top: 1rem;
+}
+
+.market-occupation h5 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.market-occupation-code {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  margin: 0;
+}
+
+/* Wide percentile tables scroll inside their own container rather than
+   forcing the whole page sideways on a narrow screen. */
+.market-table-scroll {
+  overflow-x: auto;
+}
+
+.market-sample {
+  font-weight: 400;
+  opacity: 0.65;
+  font-size: 0.75rem;
+}
+
+.market-suppressed-row td {
+  font-size: 0.8rem;
 }
 
 .market-occupation-header {
@@ -291,7 +365,17 @@ fieldset {
 
 .market-distribution th {
   font-weight: 500;
-  width: 55%;
+}
+
+.market-distribution thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
+
+.market-distribution tbody th {
+  white-space: nowrap;
 }
 
 .market-value {

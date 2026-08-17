@@ -147,6 +147,86 @@ def ingested_market_data(db_session: Session) -> None:
 
 
 @pytest.fixture()
+def ingested_survey_data(db_session: Session) -> None:
+    """Persists a small set of survey cells via the REAL survey ingestion
+    against a stub provider, so multi-source behaviour can be tested
+    without the 140MB release or any network access.
+
+    Deliberately includes one cell below the publication threshold, so
+    the suppression path is exercised rather than only the happy one.
+    """
+    from decimal import Decimal
+
+    from app.market_data.ingest_survey import fetch_and_persist as survey_persist
+    from app.market_data.providers.survey_base import (
+        ExperienceBand,
+        SurveyCell,
+        SurveyDataProvider,
+    )
+
+    class _StubSurveyProvider(SurveyDataProvider):
+        @property
+        def name(self) -> str:
+            return "stub_survey"
+
+        @property
+        def taxonomy(self) -> str:
+            return "SO-DEVTYPE-2025"
+
+        @property
+        def reference_period_label(self) -> str:
+            return "2025 survey"
+
+        def fetch_cells(self, country_code: str) -> list[SurveyCell]:
+            base = {"US": 140000, "IN": 18598, "ES": 60328}.get(country_code.upper())
+            if base is None:
+                return []
+            return [
+                SurveyCell(
+                    external_code="Developer, full-stack",
+                    external_label="Developer, full-stack",
+                    experience_band=None,
+                    sample_size=1484,
+                    percentile_10=Decimal(base) * Decimal("0.6"),
+                    percentile_25=Decimal(base) * Decimal("0.8"),
+                    percentile_50=Decimal(base),
+                    percentile_75=Decimal(base) * Decimal("1.3"),
+                    percentile_90=Decimal(base) * Decimal("1.6"),
+                    mean_value=Decimal(base) * Decimal("1.1"),
+                ),
+                SurveyCell(
+                    external_code="ALL",
+                    external_label="All developer roles (pooled)",
+                    experience_band=ExperienceBand("6-10 yrs", 6, 10),
+                    sample_size=248,
+                    percentile_10=Decimal(base) * Decimal("0.7"),
+                    percentile_25=Decimal(base) * Decimal("0.9"),
+                    percentile_50=Decimal(base),
+                    percentile_75=Decimal(base) * Decimal("1.2"),
+                    percentile_90=Decimal(base) * Decimal("1.5"),
+                    mean_value=Decimal(base) * Decimal("1.05"),
+                ),
+                # Below the threshold: every figure withheld, sample size
+                # retained so the gap is visible rather than absent.
+                SurveyCell(
+                    external_code="Developer, front-end",
+                    external_label="Developer, front-end",
+                    experience_band=None,
+                    sample_size=12,
+                    percentile_10=None,
+                    percentile_25=None,
+                    percentile_50=None,
+                    percentile_75=None,
+                    percentile_90=None,
+                    mean_value=None,
+                ),
+            ]
+
+    survey_persist(db_session, _StubSurveyProvider())
+    db_session.commit()
+
+
+@pytest.fixture()
 def db_session() -> Generator[Session, None, None]:
     with SessionLocal() as session:
         yield session

@@ -37,6 +37,7 @@ from app.reference_data.upsert import upsert as _upsert
 
 logger = logging.getLogger(__name__)
 
+OEWS_SOURCE_KEY = "bls_oews"
 OEWS_SOURCE_NAME = "US Bureau of Labor Statistics - Occupational Employment and Wage Statistics"
 OEWS_SOURCE_URL = "https://www.bls.gov/oes/current/oes_nat.htm"
 
@@ -143,6 +144,10 @@ def fetch_and_persist(session: Session, provider: MarketDataProvider) -> list[Ma
             "employment_count": wages.employment_count,
             "reference_period_label": f"May {wages.reference_year}",
             "published_date": _VERIFIED_PUBLICATION_DATES.get(wages.reference_year),
+            # Phase 11: a second source now exists, so rows carry a stable
+            # machine identifier for grouping rather than the API having to
+            # string-match display text.
+            "source_key": OEWS_SOURCE_KEY,
             "source_name": OEWS_SOURCE_NAME,
             "source_url": OEWS_SOURCE_URL,
             "methodology_note": OEWS_METHODOLOGY_NOTE,

@@ -122,7 +122,12 @@ class JobFamilyOccupationMapping(Base):
         String(32), comment="Occupational classification standard, e.g. 'SOC-2018'."
     )
     external_code: Mapped[str] = mapped_column(
-        String(16), comment="Code within `taxonomy`, e.g. '151252' for SOC 15-1252."
+        String(128),
+        comment="Code within `taxonomy`, e.g. '151252' for SOC 15-1252, or a survey's own "
+        "role label. Widened from 16 in Phase 11: a statistical classification uses short "
+        "numeric codes, but a survey's identifier for a role IS its descriptive string "
+        "(e.g. 'Developer, embedded applications or devices'). Storing the source's own "
+        "value keeps the row traceable rather than inventing local slugs.",
     )
     external_label: Mapped[str] = mapped_column(
         String(256),
@@ -168,6 +173,14 @@ class MarketDataPoint(Base):
             "geographic_scope",
             "area_code",
             "reference_period",
+            # Added in Phase 11: the same occupation and vintage now
+            # legitimately yields several rows, one per experience band
+            # (plus one with NULL for the band-independent figure), so the
+            # band is part of what makes a row unique. NULL participates
+            # in a UNIQUE constraint as "distinct" in Postgres, which is
+            # exactly right here - the band-independent row must be able
+            # to coexist with the banded ones.
+            "experience_band_label",
             name="uq_market_data_points_natural_key",
         ),
         # At least one actual figure, or the row is provenance with no
@@ -180,10 +193,26 @@ class MarketDataPoint(Base):
         # this phase, but the schema staying able to represent mean-only
         # data is what keeps adding it later a data change, not a
         # migration.
+        # Relaxed in Phase 11, deliberately and narrowly. The original
+        # rule ("a row must carry at least one figure, or it is a citation
+        # attached to nothing") was right for a source that publishes
+        # finished estimates. Phase 11 introduced a genuinely new and
+        # intentional row type: a SUPPRESSED survey cell, where every
+        # figure is NULL precisely because the sample was too small to
+        # publish, and the row exists so that absence is visible with its
+        # sample size attached rather than silently missing.
+        #
+        # So the requirement becomes: a row with no figures must at least
+        # explain itself with a sample count. A published-estimate source
+        # still cannot store an empty row, because it has no sample_size.
+        # The constraint surfaced this conflict by failing the real
+        # ingestion, which is exactly what it was for - it forced the new
+        # case to be made explicit instead of quietly dropped.
         CheckConstraint(
             "percentile_10 IS NOT NULL OR percentile_25 IS NOT NULL OR "
             "percentile_50 IS NOT NULL OR percentile_75 IS NOT NULL OR "
-            "percentile_90 IS NOT NULL OR mean_value IS NOT NULL",
+            "percentile_90 IS NOT NULL OR mean_value IS NOT NULL OR "
+            "sample_size IS NOT NULL",
             name="ck_market_data_points_has_at_least_one_value",
         ),
         Index("ix_market_data_points_lookup", "country_id", "taxonomy", "external_code"),
@@ -193,7 +222,9 @@ class MarketDataPoint(Base):
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("currencies.id"))
     taxonomy: Mapped[str] = mapped_column(String(32))
-    external_code: Mapped[str] = mapped_column(String(16))
+    # Same widening as JobFamilyOccupationMapping.external_code above -
+    # the two must stay in step, since they are joined on this value.
+    external_code: Mapped[str] = mapped_column(String(128))
     external_label: Mapped[str] = mapped_column(String(256))
 
     geographic_scope: Mapped[GeographicScope] = mapped_column(
@@ -219,6 +250,36 @@ class MarketDataPoint(Base):
         "how much weight the estimate can bear."
     )
 
+    # Phase 11. How many individual responses this cell was computed from.
+    # NULL for a source that publishes finished estimates rather than
+    # microdata (BLS OEWS reports employment, which is a population
+    # estimate, not a sample count) - the two must never be conflated,
+    # which is why they are separate columns.
+    #
+    # For survey-derived rows this is the single most important number on
+    # the row after the figures themselves: it is what tells a reader
+    # whether the distribution means anything, and it is shown in the UI
+    # rather than kept internal.
+    sample_size: Mapped[int | None] = mapped_column(Integer)
+
+    # Phase 11's seniority dimension, stored EXACTLY as measured: bands of
+    # reported years of professional experience. Deliberately NOT a
+    # foreign key to ExperienceLevel (Junior/Mid/Senior/...) - relabelling
+    # "6-10 yrs" as "Senior" would be precisely the inference no source
+    # publishes, the same trap Phase 10 avoided by refusing to read a
+    # percentile as a level. Years in, years out.
+    #
+    # NULL means the row is not broken down by experience at all, which is
+    # the honest state for every BLS row (OEWS publishes no seniority
+    # breakdown whatsoever).
+    experience_band_label: Mapped[str | None] = mapped_column(
+        String(32), comment="e.g. '6-10 yrs'. NULL = not broken down by experience."
+    )
+    experience_min_years: Mapped[int | None] = mapped_column(Integer)
+    experience_max_years: Mapped[int | None] = mapped_column(
+        Integer, comment="NULL with a non-NULL min means an open-ended top band (e.g. '11+ yrs')."
+    )
+
     reference_period: Mapped[date] = mapped_column(
         Date,
         comment="First day of the period the estimate DESCRIBES (e.g. 2025-05-01 for OEWS "
@@ -235,11 +296,33 @@ class MarketDataPoint(Base):
 
     # Provenance is required, not optional: a market figure with no
     # citation is exactly what this project refuses to produce.
+    #
+    # source_key (Phase 11) is the stable machine identifier - added once
+    # a second source existed, so the API and UI can group and label by
+    # source without string-matching source_name, which is display text
+    # and free to change.
+    source_key: Mapped[str] = mapped_column(
+        String(32), comment="Stable source id, e.g. 'bls_oews', 'stackoverflow_survey'."
+    )
     source_name: Mapped[str] = mapped_column(String(128))
     source_url: Mapped[str] = mapped_column(String(512))
     methodology_note: Mapped[str] = mapped_column(
         Text, comment="Sample/collection method and known limitations, in the source's own terms."
     )
+
+    # Phase 11. When non-NULL, the UI renders this as a PROMINENT banner,
+    # not a footnote - the same treatment
+    # excludes_variable_compensation already gets, and for the same
+    # reason: a caveat that changes how a number should be read is
+    # useless if the reader finds it after the number.
+    #
+    # The concrete case this exists for: the Stack Overflow survey's
+    # India sample skews toward product-company and globally-connected
+    # developers and reads high against broad Indian IT-services
+    # compensation. Left invisible, this tool would replace one
+    # non-representative skew with a different one - the exact problem it
+    # was built to avoid.
+    representativeness_note: Mapped[str | None] = mapped_column(Text)
 
     # The single most misleading thing about using OEWS for tech
     # compensation, promoted to a real boolean rather than buried in
