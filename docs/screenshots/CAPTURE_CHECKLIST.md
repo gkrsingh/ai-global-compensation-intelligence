@@ -1,12 +1,46 @@
 # Screenshot capture checklist
 
-Automated capture is not available in the environment these were prepared in
-(the headless browser pane does not composite frames, so `screenshot` times
-out). Everything else is done: the folder exists, the README already embeds
-these four filenames, and the exact app states are specified below.
+## Status: 2 captured, 2 outstanding
 
-**Drop four PNGs into this folder with the exact filenames and the README
-renders correctly. Nothing else to change.**
+| Shot | File | Status |
+| --- | --- | --- |
+| Calculator + market context (US) | `us-calculation-with-market-context.png` | **Captured** — embedded as the README hero |
+| Calculator input form | `calculator-form.png` | **Captured** — embedded under "Getting started" |
+| AI insight panel | `ai-insight.png` | **Outstanding** — see shot 3 below |
+| Comparison view | `comparison.png` | **Outstanding** — see shot 4 below |
+
+The two outstanding embeds are **commented out** in the README, so nothing
+renders as a broken image. Capture them, save with the exact filenames above,
+and uncomment the two `![...]` lines in the README's "The AI layer, and the
+comparison view" section — the paths are already correct.
+
+### What changed from the original plan
+
+The captured pair does not map one-to-one onto the four shots this checklist
+originally specified, and the filenames were corrected to describe what the
+images actually show rather than what was planned:
+
+- **`us-calculation-with-market-context.png`** is a single full-page capture
+  that covers what were originally shots 1 *and* 2 — a complete calculation
+  with its per-bracket tax breakdown, and directly below it the market context
+  panel with both sources. It is a **US $120,000 Product Management** case, not
+  the India case shot 1 specified, so it is named and captioned accordingly.
+  It happens to be a better illustration than the original plan: BLS offers
+  only a *poor match* for product management while the survey offers a *close
+  match*, which puts the match-quality labelling on display.
+- **`calculator-form.png`** is the input form before submission — not one of
+  the four originally planned shots, but useful, so it is used under
+  "Getting started".
+
+Shot 1 (the India case) and shot 2 (a market-panel-only crop) are **not
+outstanding** — the captured full-page image covers both. Only shots 3 and 4
+below remain.
+
+---
+
+Automated capture is not available in the environment this was prepared in
+(the headless browser pane does not composite frames, so `screenshot` times
+out), which is why these are captured by hand.
 
 Every expected value below was verified by actually driving the running app —
 they are the real figures the app produces, not predictions. If what you see
@@ -44,7 +78,12 @@ no need to include the whole page.
 
 ---
 
-## 1. `calculator-india.png`
+## 1. `calculator-india.png` — NOT NEEDED (covered)
+
+> Superseded by `us-calculation-with-market-context.png`, which already
+> shows a complete calculation with its bracket breakdown. Kept only
+> because the India case is the hand-verified one and is worth capturing
+> if you ever want a second calculator shot.
 
 **The hand-verified India case.**
 
@@ -75,7 +114,11 @@ shot — it shows the calculation is transparent, not a black box.
 
 ---
 
-## 2. `market-context-two-sources.png`
+## 2. `market-context-two-sources.png` — NOT NEEDED (covered)
+
+> Superseded by `us-calculation-with-market-context.png`, whose lower
+> half is exactly this panel with both sources. Kept in case you later
+> want a tighter crop of just the market panel.
 
 **The most distinctive feature: two sources, side by side, never averaged.**
 
@@ -112,7 +155,7 @@ splitting it into two images.
 
 ---
 
-## 3. `ai-insight.png`
+## 3. `ai-insight.png` — OUTSTANDING
 
 **Requires being logged in** (AI insight is auth-only), and makes one real
 Gemini API call. `GEMINI_API_KEY` must be set in `backend/.env`.
@@ -142,7 +185,7 @@ guessing at salaries.
 
 ---
 
-## 4. `comparison.png`
+## 4. `comparison.png` — OUTSTANDING
 
 **Requires being logged in**, and two saved calculations.
 
@@ -170,11 +213,12 @@ cited rather than assumed.
 
 ```bash
 git add docs/screenshots/*.png
-git commit -m "docs: add application screenshots"
+git commit -m "docs: add AI insight and comparison screenshots"
 git push
 ```
 
-The README already references all four paths — no edits needed.
+Then uncomment the two `![...]` lines in the README's "The AI layer, and the
+comparison view" section. The paths there already match these filenames.
 
 **Real screenshots of real data only.** No mockups, no edited numbers. A
 fabricated screenshot in a project whose entire premise is that numbers must

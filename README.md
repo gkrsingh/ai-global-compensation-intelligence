@@ -7,7 +7,13 @@ This computes take-home pay deterministically from published government tax
 data, shows market context from cited statistical sources, and keeps every
 AI-generated word structurally separated from every number.
 
-![Compensation calculator showing a ₹1,500,000 India calculation with full tax bracket breakdown](docs/screenshots/calculator-india.png)
+![A US $120,000 Product Management calculation: gross, total tax of $26,750 and net of $93,250, the full per-bracket tax breakdown, and below it the market context panel showing BLS and Stack Overflow wage distributions separately](docs/screenshots/us-calculation-with-market-context.png)
+
+*One continuous page: a real US $120,000 calculation, its full per-bracket tax
+breakdown, and market context from two sources shown separately. Note the
+match-quality labels — BLS offers only a **poor match** for product management
+(SOC-2018 has no such occupation), while the survey has a **close match**. The
+tool says which is which rather than presenting both as equally applicable.*
 
 ## What makes this different
 
@@ -24,8 +30,6 @@ AI-generated word structurally separated from every number.
 - **Every figure traceable to a cited government or published source** —
   tax brackets, exchange rates and wage statistics all carry their origin,
   collection period and known limitations.
-
-![Market context panel showing BLS and Stack Overflow survey wage distributions side by side, with different medians and separate methodology notes](docs/screenshots/market-context-two-sources.png)
 
 ## What this process caught
 
@@ -86,12 +90,17 @@ The AI explains figures the engine computed. It never produces one. Every
 number in its output is extracted after generation and checked against the
 grounded data; unverifiable text is regenerated or withheld rather than shown.
 
-![AI-generated insight panel showing generated prose with the disclaimer that it does not compute or add any numbers of its own](docs/screenshots/ai-insight.png)
-
-Saved calculations can be normalised into a single currency and compared,
+Saved calculations can also be normalised into a single currency and compared,
 with the exchange rate and its ECB source shown alongside the gaps.
 
+<!-- Screenshots pending capture - see docs/screenshots/CAPTURE_CHECKLIST.md
+     shots 3 and 4. Uncomment each line once the file exists; the paths below
+     are already the ones the checklist tells you to save as.
+
+![AI-generated insight panel showing generated prose with the disclaimer that it does not compute or add any numbers of its own](docs/screenshots/ai-insight.png)
+
 ![Comparison view showing two offers side by side, normalised to one currency, with per-metric gap analysis](docs/screenshots/comparison.png)
+-->
 
 <details>
 <summary><strong>Build history (phases 1–11)</strong> — how it was built, one increment at a time</summary>
@@ -333,6 +342,12 @@ See [`backend/README.md`](backend/README.md) and
 [`frontend/README.md`](frontend/README.md) for setup and commands. Once both
 are running (backend on its dev port, frontend on `5173`), the page shows
 live backend/database status and the compensation calculator.
+
+![The compensation calculator input form: country, optional job family, target currency, and one or more compensation components each with its own amount and currency](docs/screenshots/calculator-form.png)
+
+Job family is optional and, as the form says, affects no computed figure — it
+only determines which published occupations the market context panel can map
+onto.
 
 ## Deployment
 
