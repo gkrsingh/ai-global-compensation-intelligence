@@ -18,7 +18,16 @@ jobs:
       LOG_LEVEL: WARNING
       BACKEND_CORS_ORIGINS: http://localhost:5173
       DATABASE_URL: postgresql+psycopg://compintel_ci:compintel_ci@localhost:5432/compintel_ci
-      JWT_SECRET_KEY: K-X9ar6mOLjIH1j2fLvQjyXZEWzZArQDTgXwvYFoINkbU7qoUsZgTQz-ahgt3NUD
+      # Deliberately an obvious, self-describing dummy rather than a
+      # random-looking string. It signs access tokens only for the
+      # duration of one CI run against a throwaway database that is
+      # destroyed with the runner, so it protects nothing - but a
+      # high-entropy value sitting in a public repo trips secret scanners
+      # and makes a reader stop to work out whether it matters. Saying so
+      # in the value itself is cheaper than making anyone check.
+      # Real secrets live in git-ignored .env files and are never
+      # committed (verified across the full history before publishing).
+      JWT_SECRET_KEY: ci-only-dummy-not-a-real-secret-throwaway-database
     steps:
       - uses: actions/checkout@v4
 

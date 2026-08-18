@@ -1,12 +1,104 @@
 # AI Global Compensation Intelligence
 
-Production-oriented application for understanding, calculating, comparing, and
-analyzing compensation across countries, roles, experience levels, and employment
-types.
+**A tax-aware compensation calculator and negotiation tool for India, the US
+and Spain.** Salary sites skew toward large employers, and asking an LLM what
+a role pays produces numbers that are confident, specific, and often wrong.
+This computes take-home pay deterministically from published government tax
+data, shows market context from cited statistical sources, and keeps every
+AI-generated word structurally separated from every number.
 
-## Status
+![Compensation calculator showing a ₹1,500,000 India calculation with full tax bracket breakdown](docs/screenshots/calculator-india.png)
 
-Phases 1–11 complete.
+## What makes this different
+
+- **A deterministic tax engine that is fully data-driven per country** —
+  brackets, thresholds and deductions live in the database, and there is zero
+  country-specific branching anywhere in the application code.
+- **An AI layer that structurally cannot state a number the engine didn't
+  compute** — every generated figure is extracted and verified against the
+  grounded data *after* generation, so the guarantee is post-hoc
+  verification rather than a prompt politely asking the model to behave.
+- **Two independent market data sources, shown separately and never
+  averaged**, each with its own methodology, sample sizes, and suppression
+  thresholds that withhold any figure too thinly sampled to mean anything.
+- **Every figure traceable to a cited government or published source** —
+  tax brackets, exchange rates and wage statistics all carry their origin,
+  collection period and known limitations.
+
+![Market context panel showing BLS and Stack Overflow survey wage distributions side by side, with different medians and separate methodology notes](docs/screenshots/market-context-two-sources.png)
+
+## What this process caught
+
+Building this with real verification at every step — real API calls, real
+database rows, the actual running app — surfaced a series of bugs that tests
+alone did not. They are worth reading not as a list of mistakes, but as what
+a verification discipline actually catches, and what would have shipped
+without it.
+
+**A silent ₹0.00 tax result.** The engine compared an already-converted gross
+against tax brackets denominated in a different currency. It was unreachable
+for three phases because every test happened to use a target currency equal to
+the tax currency. The first genuine cross-currency calculation — ₹1,500,000
+viewed in EUR — returned a total tax of `0.00`. It didn't crash or raise; it
+returned a plausible, completely wrong answer. ([`6a4377f`](../../commit/6a4377f))
+
+**An AI safeguard defeatable by its own system prompt.** The system prompt
+contains `"150,000"` as an instructional example of formatting. Had the
+consistency checker built its ground truth from the system and user prompts
+combined, any hallucinated $150,000 figure would have validated against the
+prompt's own example. Found by deliberately treating the prompt as adversarial
+input *before* writing the checker.
+
+**The same bug class one layer deeper.** When the checker rejects a response,
+the retry prompt names the fabricated number so the model can correct itself.
+Checking attempt two against *that* prompt would have laundered a repeated
+fabrication into "verified". Caught by a test that deliberately repeats the
+fabrication.
+
+**A safeguard failing closed, not open.** The checker's number regex misparsed
+a legitimately restated date — `2026-08-16` — as a negative number, and
+rejected a fully accurate response twice, live in the browser. Only a real API
+call surfaced it; every mocked test passed. ([`96cf1e0`](../../commit/96cf1e0))
+
+**A rate limiter that would have collapsed to a single shared bucket in
+production.** It keyed on the direct TCP peer, which behind the project's own
+nginx config is always loopback — so every user in the world would have shared
+one limit. Found by reading the deployed proxy config against the library's
+actual source rather than its documentation.
+
+**A feature that would have shipped completely dead.** The market context
+panel could never render, because the calculator form never collected the job
+family ID it needs. Every test passed — the tests supplied the ID directly.
+Found by opening the running app and looking at it.
+
+**A filter that nearly selected students.** An "employed full-time" filter
+matched `"Attending school (full-time)"` on a substring, quietly selecting the
+wrong population and dragging a median from $150,000 to $67,500. Caught by
+measuring the filter's effect instead of trusting that it did what it said.
+
+Every one of these was caught before shipping, by process rather than luck.
+The recurring pattern is that each was invisible to the test suite and visible
+the moment something real ran.
+
+## The AI layer, and the comparison view
+
+The AI explains figures the engine computed. It never produces one. Every
+number in its output is extracted after generation and checked against the
+grounded data; unverifiable text is regenerated or withheld rather than shown.
+
+![AI-generated insight panel showing generated prose with the disclaimer that it does not compute or add any numbers of its own](docs/screenshots/ai-insight.png)
+
+Saved calculations can be normalised into a single currency and compared,
+with the exchange rate and its ECB source shown alongside the gaps.
+
+![Comparison view showing two offers side by side, normalised to one currency, with per-metric gap analysis](docs/screenshots/comparison.png)
+
+<details>
+<summary><strong>Build history (phases 1–11)</strong> — how it was built, one increment at a time</summary>
+
+Each phase was built, verified against something real, and committed before
+the next began. Kept because the sequence shows the reasoning, not just the
+result.
 
 - **Phase 1 — walking skeleton.** FastAPI backend with a liveness/readiness
   health check, React/Vite frontend, PostgreSQL wired locally, CI (lint,
@@ -60,6 +152,8 @@ Phases 1–11 complete.
   breakdown. Sources are shown separately and never averaged, and cells
   with too few responses are suppressed and labelled rather than published
   thin — see [Market data coverage](#market-data-coverage).
+
+</details>
 
 Nothing is deployed to a real server yet — see [Deployment](#deployment).
 
@@ -276,3 +370,17 @@ prerequisites.
 - CI/CD: GitHub Actions
 - Production target: Ubuntu, Nginx, Gunicorn/Uvicorn, systemd, PostgreSQL (native
   packages, no containers)
+
+## Licensing
+
+- **Code** — [MIT](LICENSE).
+- **Data** — [`DATA_LICENSE.md`](DATA_LICENSE.md).
+
+The two are kept deliberately separate. The Stack Overflow survey is licensed
+under the copyleft ODbL, so its obligations are documented apart from the code
+licence rather than allowed to blur into it. No derived survey data is
+committed here — cloning this repository triggers no database obligations;
+running the ingestion locally or deploying publicly does. BLS OEWS figures are
+US federal government works and in the public domain, attributed anyway
+because a market figure without a citation is what this project refuses to
+produce.
