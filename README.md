@@ -93,14 +93,10 @@ grounded data; unverifiable text is regenerated or withheld rather than shown.
 Saved calculations can also be normalised into a single currency and compared,
 with the exchange rate and its ECB source shown alongside the gaps.
 
-<!-- Screenshots pending capture - see docs/screenshots/CAPTURE_CHECKLIST.md
-     shots 3 and 4. Uncomment each line once the file exists; the paths below
-     are already the ones the checklist tells you to save as.
-
-![AI-generated insight panel showing generated prose with the disclaimer that it does not compute or add any numbers of its own](docs/screenshots/ai-insight.png)
-
-![Comparison view showing two offers side by side, normalised to one currency, with per-metric gap analysis](docs/screenshots/comparison.png)
--->
+Neither of these is screenshotted — capturing the AI panel means spending a
+real API call on a shot whose interesting part is a disclaimer, and both
+features are covered by the tests and described above. See
+[`docs/screenshots/`](docs/screenshots/) for what is captured and why.
 
 <details>
 <summary><strong>Build history (phases 1–11)</strong> — how it was built, one increment at a time</summary>
